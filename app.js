@@ -235,7 +235,93 @@ function boucleJeu(maintenant) {
 demarrerAttente(performance.now());
 requestAnimationFrame(boucleJeu);
 
-function dessinerStats() {} // remplacé en Task 5
+// --- Écran stats ---
+let dureeStats = 'tout';
+document.querySelectorAll('#selecteur-duree button').forEach(b => {
+  b.addEventListener('click', () => {
+    dureeStats = b.dataset.duree;
+    document.querySelectorAll('#selecteur-duree button').forEach(x => x.classList.toggle('actif', x === b));
+    dessinerStats();
+  });
+});
+
+function dessinerStats() {
+  const canvas = $('canvas-stats');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const larg = canvas.clientWidth, haut = canvas.clientHeight;
+  if (larg === 0 || haut === 0) return;
+  canvas.width = larg * dpr; canvas.height = haut * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, larg, haut);
+
+  // série : capital de départ + solde après chaque manche jouée
+  const tout = [Game.SOLDE_DEPART, ...donnees.capitalHistorique];
+  const n = dureeStats === 'tout' ? tout.length : Math.min(tout.length, parseInt(dureeStats, 10) + 1);
+  const serie = tout.slice(-n);
+
+  const s = donnees.stats;
+  $('resume-stats').innerHTML =
+    carte(s.nbParties, 'parties jouées') + carte(s.totalMise, 'total misé 🪙') +
+    carte(s.totalGagne, 'total gagné 🪙') + carte(s.plusGrosGain, 'plus gros gain 🪙');
+
+  if (serie.length < 2) {
+    ctx.fillStyle = '#9BA4B4';
+    ctx.font = '15px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Joue une partie pour voir ta courbe 📉📈', larg / 2, haut / 2);
+    return;
+  }
+
+  const mini = Math.min(...serie), maxi = Math.max(...serie);
+  const ampli = Math.max(1, maxi - mini);
+  const mg = 44, md = 14, mh = 16, mb = 26;
+  const x = (i) => mg + (i / (serie.length - 1)) * (larg - mg - md);
+  const y = (v) => mh + (1 - (v - mini) / ampli) * (haut - mh - mb);
+
+  // grille : min, milieu, max
+  ctx.strokeStyle = 'rgba(155,164,180,0.18)';
+  ctx.fillStyle = '#9BA4B4';
+  ctx.font = '11px -apple-system, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.lineWidth = 1;
+  for (const v of [mini, (mini + maxi) / 2, maxi]) {
+    ctx.beginPath(); ctx.moveTo(mg, y(v)); ctx.lineTo(larg - md, y(v)); ctx.stroke();
+    ctx.fillText(Math.round(v), mg - 6, y(v) + 4);
+  }
+
+  // ligne de départ (1000) si visible
+  if (Game.SOLDE_DEPART >= mini && Game.SOLDE_DEPART <= maxi) {
+    ctx.strokeStyle = 'rgba(241,196,15,0.35)';
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(mg, y(Game.SOLDE_DEPART)); ctx.lineTo(larg - md, y(Game.SOLDE_DEPART)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // aire + courbe, couleur selon tendance
+  const gagne = serie[serie.length - 1] >= serie[0];
+  const couleur = gagne ? '#2ECC71' : '#E74C3C';
+  ctx.beginPath();
+  serie.forEach((v, i) => i === 0 ? ctx.moveTo(x(i), y(v)) : ctx.lineTo(x(i), y(v)));
+  ctx.strokeStyle = couleur; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.stroke();
+  ctx.lineTo(x(serie.length - 1), haut - mb); ctx.lineTo(x(0), haut - mb); ctx.closePath();
+  ctx.fillStyle = gagne ? 'rgba(46,204,113,0.12)' : 'rgba(231,76,60,0.12)';
+  ctx.fill();
+
+  // point final + valeur
+  const dx = x(serie.length - 1), dy = y(serie[serie.length - 1]);
+  ctx.beginPath(); ctx.arc(dx, dy, 4, 0, Math.PI * 2); ctx.fillStyle = couleur; ctx.fill();
+  ctx.textAlign = 'center'; ctx.fillStyle = '#EAEAEA'; ctx.font = 'bold 13px -apple-system, sans-serif';
+  ctx.fillText(serie[serie.length - 1] + ' 🪙', Math.min(dx, larg - 40), Math.max(14, dy - 10));
+
+  // libellé axe X
+  ctx.fillStyle = '#9BA4B4'; ctx.font = '11px -apple-system, sans-serif';
+  ctx.fillText((serie.length - 1) + ' dernière(s) partie(s)', larg / 2, haut - 8);
+}
+
+function carte(valeur, libelle) {
+  return '<div class="carte-stat"><div class="valeur">' + valeur + '</div><div class="libelle">' + libelle + '</div></div>';
+}
 
 majSolde();
 majAvion();
