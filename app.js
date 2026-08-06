@@ -1,4 +1,4 @@
-// app.js — UI : navigation, salon, jeu, stats
+// app.js — UI : navigation, salon, jeu, boutique, stats
 'use strict';
 
 const donnees = Game.chargerDonnees(localStorage);
@@ -6,7 +6,16 @@ function sauver() { Game.sauverDonnees(localStorage, donnees); }
 
 const $ = (id) => document.getElementById(id);
 
-// --- Solde + dépôts d'argent fictif ---
+// Image de secours tant qu'un fichier d'avion n'a pas été déposé dans img/
+const IMG_SECOURS = 'img/placeholder.png';
+function avecSecours(img) {
+  img.addEventListener('error', () => {
+    if (!img.src.endsWith(IMG_SECOURS)) img.src = IMG_SECOURS;
+  });
+  return img;
+}
+
+// --- Solde + ajout d'argent ---
 function majSolde() {
   $('affiche-solde').textContent = donnees.solde;
 }
@@ -15,6 +24,7 @@ function deposerMontant(montant) {
   const r = Game.deposer(donnees, montant);
   if (!r.ok) { $('message-depot').textContent = r.erreur; return; }
   sauver(); majSolde();
+  if (ecranCourant === 'boutique') dessinerBoutique();
   $('message-depot').textContent = '';
   $('voile-depot').classList.add('cache');
 }
@@ -36,36 +46,97 @@ $('btn-valider-depot').addEventListener('click', () => {
 let ecranCourant = 'salon';
 function afficherEcran(nom) {
   ecranCourant = nom;
-  for (const e of ['salon', 'jeu', 'stats']) {
+  for (const e of ['salon', 'jeu', 'boutique', 'stats']) {
     $('ecran-' + e).classList.toggle('cache', e !== nom);
   }
   $('btn-retour-salon').classList.toggle('cache', nom === 'salon');
   if (nom === 'stats') dessinerStats();
+  if (nom === 'boutique') dessinerBoutique();
 }
 $('btn-retour-salon').addEventListener('click', () => afficherEcran('salon'));
 $('btn-jouer').addEventListener('click', () => afficherEcran('jeu'));
 $('btn-stats').addEventListener('click', () => afficherEcran('stats'));
+$('btn-boutique').addEventListener('click', () => afficherEcran('boutique'));
 
-// --- Carrousel d'avions (salon) ---
-let indexAvion = Math.max(0, Game.AVIONS.findIndex(a => a.id === donnees.avion));
-const imageAvion = new Image(); // utilisée aussi par le canvas de vol
+// --- Carrousel d'avions (salon) : uniquement les avions débloqués ---
+const imageAvion = avecSecours(new Image()); // utilisée aussi par le canvas de vol
+avecSecours($('img-avion-salon'));
+
+function avionsDisponibles() {
+  return Game.AVIONS.filter(a => Game.possede(donnees, a.id));
+}
 
 function majAvion() {
-  const avion = Game.AVIONS[indexAvion];
+  const avion = Game.avionParId(donnees.avion);
   $('img-avion-salon').src = avion.img;
   $('nom-avion').textContent = avion.nom;
   imageAvion.src = avion.img;
-  donnees.avion = avion.id;
+  const dispo = avionsDisponibles();
+  const seul = dispo.length < 2;
+  $('btn-avion-prec').disabled = seul;
+  $('btn-avion-suiv').disabled = seul;
   sauver();
 }
-$('btn-avion-prec').addEventListener('click', () => {
-  indexAvion = (indexAvion - 1 + Game.AVIONS.length) % Game.AVIONS.length;
+
+function decalerAvion(pas) {
+  const dispo = avionsDisponibles();
+  if (dispo.length < 2) return;
+  const i = Math.max(0, dispo.findIndex(a => a.id === donnees.avion));
+  const suivant = dispo[(i + pas + dispo.length) % dispo.length];
+  Game.choisirAvion(donnees, suivant.id);
   majAvion();
-});
-$('btn-avion-suiv').addEventListener('click', () => {
-  indexAvion = (indexAvion + 1) % Game.AVIONS.length;
-  majAvion();
-});
+}
+$('btn-avion-prec').addEventListener('click', () => decalerAvion(-1));
+$('btn-avion-suiv').addEventListener('click', () => decalerAvion(1));
+
+// --- Boutique ---
+function dessinerBoutique() {
+  $('grille-boutique').innerHTML = Game.AVIONS.map(a => {
+    const possede = Game.possede(donnees, a.id);
+    const choisi = donnees.avion === a.id;
+    const classes = ['carte-avion'];
+    if (!possede) classes.push('verrouille');
+    if (choisi) classes.push('choisi');
+    let bouton;
+    if (choisi) bouton = '<button class="secondaire" disabled>✓ Sélectionné</button>';
+    else if (possede) bouton = '<button class="secondaire" data-choisir="' + a.id + '">Sélectionner</button>';
+    else bouton = '<button data-acheter="' + a.id + '">Acheter</button>';
+    // src posé après coup (voir plus bas) pour que le repli soit branché avant le chargement
+    return '<div class="' + classes.join(' ') + '">' +
+      '<div class="vignette"><img data-src="' + a.img + '" alt="' + a.nom + '"></div>' +
+      '<div class="nom">' + a.nom + '</div>' +
+      '<div class="prix">' + (possede ? 'Débloqué' : a.prix + ' €') + '</div>' +
+      bouton + '</div>';
+  }).join('');
+
+  $('grille-boutique').querySelectorAll('img[data-src]').forEach(img => {
+    avecSecours(img).src = img.dataset.src;
+  });
+  $('grille-boutique').querySelectorAll('[data-acheter]').forEach(b => {
+    b.addEventListener('click', () => acheter(b.dataset.acheter));
+  });
+  $('grille-boutique').querySelectorAll('[data-choisir]').forEach(b => {
+    b.addEventListener('click', () => {
+      Game.choisirAvion(donnees, b.dataset.choisir);
+      sauver(); majAvion(); dessinerBoutique();
+      messageBoutique(Game.avionParId(donnees.avion).nom + ' sélectionné.', false);
+    });
+  });
+}
+
+function messageBoutique(texte, erreur) {
+  const el = $('message-boutique');
+  el.textContent = texte;
+  el.classList.toggle('erreur', !!erreur);
+}
+
+function acheter(id) {
+  const r = Game.acheterAvion(donnees, id);
+  if (!r.ok) { messageBoutique(r.erreur, true); return; }
+  Game.choisirAvion(donnees, id);
+  sauver(); majSolde(); majAvion(); dessinerBoutique();
+  messageBoutique(Game.avionParId(id).nom + ' débloqué et sélectionné ! ✈️', false);
+}
 
 // --- Écran jeu : machine à états ---
 const K_CROISSANCE = 0.075;           // m(t) = e^(k*t) : x2 vers ~9 s
@@ -182,7 +253,7 @@ function demarrerAttente(maintenant) {
 function demarrerVol(maintenant) {
   etatJeu.phase = 'VOL';
   etatJeu.debutVol = maintenant;
-  etatJeu.crashA = Game.tirerCrash();
+  etatJeu.crashA = Game.tirerCrash(null, Game.avionParId(donnees.avion).minMult);
   etatJeu.miseEnCours = etatJeu.miseProchaine;
   etatJeu.miseProchaine = 0;
   majBoutonAction();

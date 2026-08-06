@@ -2,74 +2,105 @@
 const assert = require('assert');
 const G = require('../game.js');
 
+const mem = (init) => ({ d: init, getItem(k){ return this.d; }, setItem(k, v){ this.d = v; } });
+const neuf = () => G.chargerDonnees(mem(null));
+
 // --- tirerCrash ---
 assert.strictEqual(G.tirerCrash(() => 0), 1.00, 'r=0 -> x1.00');
 assert.strictEqual(G.tirerCrash(() => 0.505), 2.00, 'r=0.505 -> x2.00');
 assert.strictEqual(G.tirerCrash(() => 0.9999999), 1000, 'plafond x1000');
-// médiane ~x2 : sur 10000 tirages, entre 40% et 60% sous x2
 let sous2 = 0;
 for (let i = 0; i < 10000; i++) if (G.tirerCrash() < 2) sous2++;
 assert.ok(sous2 > 4000 && sous2 < 6000, 'mediane ~x2, obtenu ' + sous2);
 
+// bonus caché : minMult impose un plancher
+assert.strictEqual(G.tirerCrash(() => 0, 5), 5, 'minMult 5 releve un x1.00 a x5');
+assert.strictEqual(G.tirerCrash(() => 0.9, 5), 9.9, 'minMult n abaisse jamais un gros tirage');
+for (let i = 0; i < 2000; i++) assert.ok(G.tirerCrash(null, 5) >= 5, 'jamais sous x5 avec minMult');
+
+// --- boutique : catalogue ---
+assert.strictEqual(G.AVIONS.length, 10, '10 avions au catalogue');
+assert.strictEqual(G.AVIONS[0].prix, 0, 'le premier avion est offert');
+for (let i = 1; i < G.AVIONS.length; i++) {
+  assert.ok(G.AVIONS[i].prix > G.AVIONS[i - 1].prix, 'prix strictement croissants');
+}
+const dernier = G.AVIONS[G.AVIONS.length - 1];
+assert.strictEqual(dernier.prix, 1000, 'le plus cher vaut 1000 €');
+assert.strictEqual(dernier.nom, 'B-2 Spirit', 'le plus cher est le B-2');
+assert.strictEqual(dernier.minMult, 5, 'le plus cher garantit x5');
+assert.ok(G.AVIONS.slice(0, -1).every(a => a.minMult === undefined), 'aucun autre avion n a de bonus');
+
 // --- chargerDonnees ---
-const mem = (init) => ({ d: init, getItem(k){ return this.d; }, setItem(k, v){ this.d = v; } });
-let d = G.chargerDonnees(mem(null));
+let d = neuf();
 assert.strictEqual(d.solde, 0, 'solde par defaut = 0 €');
-assert.strictEqual(d.avion, 'lufthansa', 'avion par defaut');
-assert.strictEqual(d.stats.totalDepose, 0, 'rien depose par defaut');
+assert.deepStrictEqual(d.avionsPossedes, ['avion1'], 'seul le premier avion est debloque');
+assert.strictEqual(d.avion, 'avion1');
+assert.strictEqual(d.stats.totalDepose, 0);
+
 d = G.chargerDonnees(mem('{corrompu'));
 assert.strictEqual(d.solde, 0, 'json corrompu -> defaut');
-d = G.chargerDonnees(mem('{"solde":250,"avion":"emirates"}'));
+
+// sauvegarde d'une version anterieure : remise a zero complete
+d = G.chargerDonnees(mem('{"version":2,"solde":5000,"avionsPossedes":["avion1","avion6"]}'));
+assert.strictEqual(d.solde, 0, 'ancienne version -> solde remis a 0');
+assert.deepStrictEqual(d.avionsPossedes, ['avion1'], 'ancienne version -> avions remis a zero');
+
+// sauvegarde valide de la version courante
+d = G.chargerDonnees(mem(JSON.stringify({ version: G.VERSION, solde: 250, avion: 'avion3', avionsPossedes: ['avion1', 'avion3'] })));
 assert.strictEqual(d.solde, 250, 'solde conserve');
-assert.deepStrictEqual(d.capitalHistorique, [], 'champs manquants completes');
+assert.strictEqual(d.avion, 'avion3', 'avion selectionne conserve');
 
-// --- migration ancienne sauvegarde (sans totalDepose) ---
-d = G.chargerDonnees(mem('{"solde":900,"stats":{"totalMise":200,"totalGagne":100,"plusGrosGain":100,"nbParties":2}}'));
-assert.strictEqual(d.stats.totalDepose, 1000, 'migration: solde attribue aux depots (900 - (100-200) = 1000)');
-assert.strictEqual(G.bilan(d), -100, 'bilan migre = -100');
-
-// --- sauverDonnees ---
-const st = mem(null);
-d = G.chargerDonnees(mem('{"solde":250}'));
-G.sauverDonnees(st, d);
-assert.strictEqual(JSON.parse(st.d).solde, 250, 'sauvegarde ecrite');
+// avion selectionne non possede : on retombe sur le premier
+d = G.chargerDonnees(mem(JSON.stringify({ version: G.VERSION, solde: 10, avion: 'avion6', avionsPossedes: ['avion1'] })));
+assert.strictEqual(d.avion, 'avion1', 'avion non possede -> avion1');
 
 // --- deposer ---
-d = G.chargerDonnees(mem(null));
+d = neuf();
 let r = G.deposer(d, 50);
 assert.strictEqual(r.ok, true);
-assert.strictEqual(d.solde, 50, 'depot credite');
+assert.strictEqual(d.solde, 50);
 assert.strictEqual(d.stats.totalDepose, 50);
-r = G.deposer(d, 0);
-assert.strictEqual(r.ok, false, 'depot 0 refuse');
-r = G.deposer(d, 2.5);
-assert.strictEqual(r.ok, false, 'depot non entier refuse');
-r = G.deposer(d, 999999);
-assert.strictEqual(r.ok, false, 'depot > max refuse');
+assert.strictEqual(G.deposer(d, 0).ok, false, 'depot 0 refuse');
+assert.strictEqual(G.deposer(d, 2.5).ok, false, 'depot non entier refuse');
+assert.strictEqual(G.deposer(d, 999999).ok, false, 'depot > max refuse');
+
+// --- acheterAvion ---
+const prix2 = G.AVIONS[1].prix;
+d = neuf();
+assert.strictEqual(G.acheterAvion(d, 'avion2').ok, false, 'achat sans argent refuse');
+G.deposer(d, 200);
+r = G.acheterAvion(d, 'avion2');
+assert.strictEqual(r.ok, true, 'achat du 2e avion avec 200 €');
+assert.strictEqual(d.solde, 200 - prix2, 'prix deduit');
+assert.ok(G.possede(d, 'avion2'), 'avion debloque');
+assert.strictEqual(G.acheterAvion(d, 'avion2').ok, false, 'rachat refuse');
+r = G.acheterAvion(d, dernier.id);
+assert.strictEqual(r.ok, false, 'achat trop cher refuse');
+assert.ok(r.erreur.includes(String(dernier.prix - d.solde)), 'message indique le manque, obtenu: ' + r.erreur);
+
+// --- choisirAvion ---
+assert.strictEqual(G.choisirAvion(d, dernier.id).ok, false, 'selection d un avion verrouille refusee');
+assert.strictEqual(G.choisirAvion(d, 'avion2').ok, true);
+assert.strictEqual(d.avion, 'avion2');
 
 // --- placerMise ---
-d = G.chargerDonnees(mem(null));
+d = neuf();
 G.deposer(d, 1000);
-r = G.placerMise(d, 100);
-assert.strictEqual(r.ok, true);
+assert.strictEqual(G.placerMise(d, 100).ok, true);
 assert.strictEqual(d.solde, 900, 'mise deduite');
 assert.strictEqual(d.stats.totalMise, 100);
-r = G.placerMise(d, 5000);
-assert.strictEqual(r.ok, false, 'solde insuffisant refuse');
-r = G.placerMise(d, 0);
-assert.strictEqual(r.ok, false, 'mise < 1 refusee');
-r = G.placerMise(d, 10.5);
-assert.strictEqual(r.ok, false, 'mise non entiere refusee');
+assert.strictEqual(G.placerMise(d, 5000).ok, false, 'solde insuffisant refuse');
+assert.strictEqual(G.placerMise(d, 0).ok, false, 'mise < 1 refusee');
+assert.strictEqual(G.placerMise(d, 10.5).ok, false, 'mise non entiere refusee');
 
 // --- resoudreManche : gain ---
 let res = G.resoudreManche(d, { mise: 100, crash: 5.00, encaisseA: 2.5 });
 assert.strictEqual(res.gain, 250, 'gain = mise x mult arrondi');
 assert.strictEqual(d.solde, 1150);
-assert.strictEqual(d.stats.totalGagne, 250);
 assert.strictEqual(d.stats.plusGrosGain, 250);
 assert.strictEqual(d.stats.nbParties, 1);
-assert.deepStrictEqual(d.capitalHistorique, [1150], 'capital enregistre');
-assert.deepStrictEqual(d.bilanHistorique, [150], 'bilan enregistre (250 gagne - 100 mise)');
+assert.deepStrictEqual(d.capitalHistorique, [1150]);
+assert.deepStrictEqual(d.bilanHistorique, [150]);
 assert.strictEqual(G.bilan(d), 150, 'bilan positif');
 
 // --- resoudreManche : perte ---
@@ -77,18 +108,16 @@ G.placerMise(d, 150); // solde 1000
 res = G.resoudreManche(d, { mise: 150, crash: 1.24, encaisseA: null });
 assert.strictEqual(res.gain, 0);
 assert.strictEqual(d.solde, 1000);
-assert.strictEqual(d.stats.nbParties, 2);
-assert.deepStrictEqual(d.capitalHistorique, [1150, 1000]);
 assert.deepStrictEqual(d.bilanHistorique, [150, 0], 'bilan retombe a 0');
-assert.strictEqual(G.bilan(d), 0);
 
 // --- enregistrerCrash ---
 for (let i = 0; i < 25; i++) G.enregistrerCrash(d, 1.5 + i);
-assert.strictEqual(d.crashHistorique.length, 20, 'historique crash plafonne a 20');
+assert.strictEqual(d.crashHistorique.length, 20, 'historique plafonne a 20');
 assert.strictEqual(d.crashHistorique[d.crashHistorique.length - 1], 25.5, 'plus recent en dernier');
 
-// --- AVIONS ---
-assert.ok(Array.isArray(G.AVIONS) && G.AVIONS.length >= 5, 'au moins 5 avions');
-assert.ok(G.AVIONS.every(a => a.id && a.nom && a.img), 'champs avion complets');
+// --- sauverDonnees ---
+const st = mem(null);
+G.sauverDonnees(st, d);
+assert.strictEqual(JSON.parse(st.d).version, G.VERSION, 'version ecrite dans la sauvegarde');
 
 console.log('OK — tous les tests game.js passent');

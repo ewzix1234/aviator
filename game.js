@@ -2,22 +2,34 @@
 (function (racine) {
   'use strict';
 
+  // Boutique : l'ordre = l'ordre d'affichage et de prix croissant.
+  // `img` pointe vers img/avionN.png (déposer l'image, elle apparaît).
+  // `minMult` (optionnel) impose un multiplicateur de crash minimum : bonus
+  // caché du dernier avion, jamais annoncé dans l'interface.
   const AVIONS = [
-    { id: 'lufthansa', nom: 'Lufthansa A380', img: 'img/lufthansa.png' },
-    { id: 'emirates',  nom: 'Emirates A380',  img: 'img/emirates.png' },
-    { id: 'airfrance', nom: 'Air France A380', img: 'img/airfrance.png' },
-    { id: 'united',    nom: 'United A380',     img: 'img/united.png' },
-    { id: 'british',   nom: 'British Airways A380', img: 'img/british.png' },
+    { id: 'avion1',  nom: 'Air France A220',      img: 'img/avion1.png',  prix: 0 },
+    { id: 'avion2',  nom: 'Ryanair 737',          img: 'img/avion2.png',  prix: 25 },
+    { id: 'avion3',  nom: 'easyJet A320',         img: 'img/avion3.png',  prix: 50 },
+    { id: 'avion4',  nom: 'Virgin Atlantic 787',  img: 'img/avion4.png',  prix: 100 },
+    { id: 'avion5',  nom: 'United 777',           img: 'img/avion5.png',  prix: 175 },
+    { id: 'avion6',  nom: 'UPS 747 Cargo',        img: 'img/avion6.png',  prix: 275 },
+    { id: 'avion7',  nom: 'Singapore A380',       img: 'img/avion7.png',  prix: 400 },
+    { id: 'avion8',  nom: 'Antonov An-225',       img: 'img/avion8.png',  prix: 600 },
+    { id: 'avion9',  nom: 'E-3 Sentry AWACS',     img: 'img/avion9.png',  prix: 800 },
+    { id: 'avion10', nom: 'B-2 Spirit',           img: 'img/avion10.png', prix: 1000, minMult: 5 },
   ];
 
+  const VERSION = 3;              // incrémenter remet les sauvegardes à zéro
   const MISE_MIN = 1;
   const SOLDE_DEPART = 0;
   const DEPOT_MAX = 100000;
   const MAX_CRASHS = 20;
 
   const DONNEES_DEFAUT = Object.freeze({
+    version: VERSION,
     solde: SOLDE_DEPART,
-    avion: 'lufthansa',
+    avion: 'avion1',
+    avionsPossedes: ['avion1'],
     capitalHistorique: [],
     bilanHistorique: [],
     crashHistorique: [],
@@ -28,11 +40,15 @@
     return JSON.parse(JSON.stringify(DONNEES_DEFAUT));
   }
 
-  function tirerCrash(rnd) {
+  function avionParId(id) {
+    return AVIONS.find(a => a.id === id) || AVIONS[0];
+  }
+
+  function tirerCrash(rnd, minMult) {
     const r = (rnd || Math.random)();
     const brut = 0.99 / (1 - r);
     const crash = Math.max(1.00, Math.min(1000, brut));
-    return Math.floor(crash * 100) / 100;
+    return Math.max(minMult || 1, Math.floor(crash * 100) / 100);
   }
 
   function chargerDonnees(storage) {
@@ -43,10 +59,16 @@
     } catch (e) {
       lu = null;
     }
-    if (!lu || typeof lu !== 'object') return defaut;
+    // sauvegarde absente, illisible ou d'une version antérieure : on repart de zéro
+    if (!lu || typeof lu !== 'object' || lu.version !== VERSION) return defaut;
     const d = defaut;
     if (Number.isFinite(lu.solde) && lu.solde >= 0) d.solde = Math.floor(lu.solde);
-    if (AVIONS.some(a => a.id === lu.avion)) d.avion = lu.avion;
+    if (Array.isArray(lu.avionsPossedes)) {
+      const possedes = lu.avionsPossedes.filter(id => AVIONS.some(a => a.id === id));
+      if (!possedes.includes(AVIONS[0].id)) possedes.unshift(AVIONS[0].id);
+      d.avionsPossedes = possedes;
+    }
+    if (d.avionsPossedes.includes(lu.avion)) d.avion = lu.avion;
     if (Array.isArray(lu.capitalHistorique)) d.capitalHistorique = lu.capitalHistorique.filter(Number.isFinite);
     if (Array.isArray(lu.bilanHistorique)) d.bilanHistorique = lu.bilanHistorique.filter(Number.isFinite);
     if (Array.isArray(lu.crashHistorique)) d.crashHistorique = lu.crashHistorique.filter(Number.isFinite).slice(-MAX_CRASHS);
@@ -54,14 +76,6 @@
       for (const k of ['totalMise', 'totalGagne', 'plusGrosGain', 'nbParties', 'totalDepose']) {
         if (Number.isFinite(lu.stats[k]) && lu.stats[k] >= 0) d.stats[k] = lu.stats[k];
       }
-    }
-    // migration des anciennes sauvegardes (avant les dépôts) : le solde existant
-    // est considéré comme déposé, pour que le bilan (gagné - misé) reste juste
-    if (!(lu.stats && Number.isFinite(lu.stats.totalDepose))) {
-      d.stats.totalDepose = Math.max(0, d.solde - (d.stats.totalGagne - d.stats.totalMise));
-    }
-    if (!Array.isArray(lu.bilanHistorique) && d.capitalHistorique.length > 0) {
-      d.bilanHistorique = [];
     }
     return d;
   }
@@ -87,8 +101,24 @@
     return { ok: true };
   }
 
-  function bilan(donnees) {
-    return donnees.stats.totalGagne - donnees.stats.totalMise;
+  function possede(donnees, id) {
+    return donnees.avionsPossedes.includes(id);
+  }
+
+  function acheterAvion(donnees, id) {
+    const avion = AVIONS.find(a => a.id === id);
+    if (!avion) return { ok: false, erreur: 'Avion inconnu.' };
+    if (possede(donnees, id)) return { ok: false, erreur: 'Avion déjà débloqué.' };
+    if (avion.prix > donnees.solde) return { ok: false, erreur: 'Il te manque ' + (avion.prix - donnees.solde) + ' €.' };
+    donnees.solde -= avion.prix;
+    donnees.avionsPossedes.push(id);
+    return { ok: true };
+  }
+
+  function choisirAvion(donnees, id) {
+    if (!possede(donnees, id)) return { ok: false, erreur: 'Avion verrouillé.' };
+    donnees.avion = id;
+    return { ok: true };
   }
 
   function resoudreManche(donnees, manche) {
@@ -112,10 +142,15 @@
     }
   }
 
+  function bilan(donnees) {
+    return donnees.stats.totalGagne - donnees.stats.totalMise;
+  }
+
   const api = {
-    AVIONS, DONNEES_DEFAUT, MISE_MIN, SOLDE_DEPART, DEPOT_MAX,
-    tirerCrash, chargerDonnees, sauverDonnees,
+    AVIONS, DONNEES_DEFAUT, VERSION, MISE_MIN, SOLDE_DEPART, DEPOT_MAX,
+    tirerCrash, chargerDonnees, sauverDonnees, avionParId,
     placerMise, resoudreManche, enregistrerCrash, deposer, bilan,
+    possede, acheterAvion, choisirAvion,
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

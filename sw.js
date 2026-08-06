@@ -1,8 +1,10 @@
-const CACHE = 'aviator-v3';
+const CACHE = 'aviator-v4';
+// Les images d'avions ne sont pas listées : elles sont mises en cache à la volée
+// par le gestionnaire fetch, ce qui évite de casser l'installation quand un
+// fichier img/avionN.png n'a pas encore été déposé.
 const FICHIERS = [
   '.', 'index.html', 'style.css', 'app.js', 'game.js', 'manifest.json',
-  'img/lufthansa.png', 'img/emirates.png', 'img/airfrance.png', 'img/united.png',
-  'img/british.png', 'img/icon-192.png', 'img/icon-512.png',
+  'img/placeholder.png', 'img/icon-192.png', 'img/icon-512.png',
 ];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FICHIERS)).then(() => self.skipWaiting()));

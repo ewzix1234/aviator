@@ -141,3 +141,34 @@ body {
   background: none; border: none; color: var(--texte-faible);
   font-size: 1rem; padding: 8px; text-decoration: underline;
 }
+
+/* --- boutique --- */
+.message-boutique { color: var(--vert); min-height: 1.3em; text-align: center; font-weight: 600; }
+.message-boutique.erreur { color: var(--rouge); }
+.grille-boutique {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  width: 100%; max-width: 520px;
+}
+.carte-avion {
+  background: var(--panneau); border: 2px solid #2C3E66; border-radius: 16px;
+  padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  position: relative; overflow: hidden;
+}
+.carte-avion.choisi { border-color: var(--vert); }
+.carte-avion .vignette { position: relative; width: 100%; }
+.carte-avion img { width: 100%; height: auto; display: block; }
+.carte-avion.verrouille img { filter: grayscale(1) brightness(0.4); }
+.carte-avion.verrouille .vignette::after {
+  content: '🔒'; position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.2rem; text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+}
+.carte-avion .nom { font-weight: 700; font-size: 0.95rem; text-align: center; }
+.carte-avion .prix { color: var(--or); font-weight: 800; }
+.carte-avion button {
+  width: 100%; border: none; border-radius: 10px; padding: 10px 0;
+  font-size: 0.95rem; font-weight: 800;
+  background: var(--accent); color: white;
+}
+.carte-avion button.secondaire { background: #2C3E66; color: var(--texte); }
+.carte-avion button:disabled { background: #3A4157; color: var(--texte-faible); }

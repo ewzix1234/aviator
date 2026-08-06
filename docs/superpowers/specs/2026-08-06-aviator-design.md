@@ -55,22 +55,47 @@ Le solde fictif est affiché en permanence en haut, partagé entre tous les écr
 - **Tirage du crash** : distribution type Aviator, `crash = max(1.00, 0.99 / (1 - r))`
   avec `r` uniforme [0,1) — médiane ≈ x2, beaucoup de petits crashs, rares gros x50+.
   Plafond raisonnable (ex. x1000).
-- **Solde de départ** : 0 € (mise à jour du 2026-08-07 — avant : 1 000 jetons).
-  Bouton **＋ Ajouter** toujours visible dans l'en-tête : ouvre une fenêtre de dépôt
-  d'argent fictif façon Winamax (montants rapides 10/20/50/100/200/500 € + champ libre,
-  plafond 100 000 € par dépôt). Le total déposé est suivi dans `stats.totalDepose`,
-  ce qui permet de distinguer le solde du **bilan réel** (gagné − misé).
-- **Monnaie** : euros (€) partout, plus de jetons 🪙.
+- **Solde de départ** : 0 €. Bouton **＋ Ajouter** toujours visible dans l'en-tête :
+  ouvre une fenêtre de dépôt façon Winamax (montants rapides 10/20/50/100/200/500 €
+  + champ libre, plafond 100 000 € par dépôt). Le total déposé est suivi dans
+  `stats.totalDepose`, ce qui permet de distinguer le solde du **bilan réel**
+  (gagné − misé).
+- **Monnaie** : euros (€) partout.
+- Le champ `version` des données sauvegardées vaut `Game.VERSION` ; toute sauvegarde
+  d'une version antérieure est ignorée et repart à zéro (solde, avions, stats).
 - La logique pure (tirage, gains, historique du capital) vit dans `game.js`, séparée du
   DOM/canvas, pour être testable indépendamment.
 
-## Avions
+## Avions et boutique (refonte du 2026-08-07)
 
-- 2 avions issus d'images fournies par Elliot (stickers A380 Lufthansa et Emirates),
-  **détourées** avec `tools/detourer.swift` (Vision) et copiées dans `img/`.
-- 3 livrées **dessinées à la main en SVG** (ajout 2026-08-07) : Air France, United,
-  British Airways. Source éditable : `tools/livrees.html` (un `<svg>` par compagnie,
-  même gabarit d'A380) ; rendu en PNG transparent 570×260 via Playwright.
+10 avions fournis par Elliot (stickers), détourés et recadrés automatiquement avec
+`tools/detourer.swift` (Vision + rognage sur l'alpha), puis réduits à 760 px de large.
+L'ordre de téléchargement donne l'ordre de la boutique. Les deux derniers ont été
+retournés horizontalement (`sips -f horizontal`) pour que tous les avions volent
+vers la droite.
+
+| # | Avion | Prix |
+|---|-------|------|
+| 1 | Air France A220 | offert |
+| 2 | Ryanair 737 | 25 € |
+| 3 | easyJet A320 | 50 € |
+| 4 | Virgin Atlantic 787 | 100 € |
+| 5 | United 777 | 175 € |
+| 6 | UPS 747 Cargo | 275 € |
+| 7 | Singapore A380 | 400 € |
+| 8 | Antonov An-225 | 600 € |
+| 9 | E-3 Sentry AWACS | 800 € |
+| 10 | B-2 Spirit | 1000 € |
+
+- **Écran boutique** : grille de cartes. Un avion verrouillé est affiché en niveaux de
+  gris assombris avec un cadenas 🔒 en surimpression ; l'avion sélectionné a une bordure
+  verte. Achat = prix déduit du solde, avion débloqué puis sélectionné automatiquement.
+- **Bonus caché** : le B-2 Spirit (`minMult: 5`) garantit un crash à **x5 minimum**.
+  Rien dans l'interface ne l'annonce — c'est une découverte pour le joueur.
+- Le carrousel du salon ne fait défiler que les avions débloqués ; les flèches sont
+  désactivées tant qu'il n'y en a qu'un.
+- Ajouter un avion = déposer `img/avionN.png` + une ligne dans `Game.AVIONS`.
+  Une silhouette `img/placeholder.png` s'affiche si un fichier manque.
 - Liste des avions déclarée dans un petit tableau JS (`id`, `nom`, `fichier image`) →
   en ajouter un nouveau = déposer une image + une ligne dans le tableau.
 
