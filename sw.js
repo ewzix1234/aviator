@@ -1,7 +1,8 @@
-const CACHE = 'aviator-v2';
+const CACHE = 'aviator-v3';
 const FICHIERS = [
   '.', 'index.html', 'style.css', 'app.js', 'game.js', 'manifest.json',
-  'img/lufthansa.png', 'img/emirates.png', 'img/icon-192.png', 'img/icon-512.png',
+  'img/lufthansa.png', 'img/emirates.png', 'img/airfrance.png', 'img/united.png',
+  'img/british.png', 'img/icon-192.png', 'img/icon-512.png',
 ];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FICHIERS)).then(() => self.skipWaiting()));

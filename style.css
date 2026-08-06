@@ -20,11 +20,14 @@ body {
   position: sticky; top: 0; z-index: 10;
 }
 .solde { font-size: 1.3rem; font-weight: 700; margin-left: auto; }
-.btn-retour, .btn-recharger {
+.btn-retour {
   background: none; border: 1px solid var(--texte-faible); color: var(--texte);
   border-radius: 8px; padding: 6px 12px; font-size: 0.9rem;
 }
-.btn-recharger { border-color: var(--vert); color: var(--vert); margin-left: 12px; }
+.btn-deposer {
+  background: var(--vert); border: none; color: #08331C; font-weight: 800;
+  border-radius: 8px; padding: 8px 14px; font-size: 0.95rem; margin-left: 12px;
+}
 .btn-retour:disabled { opacity: 0.35; }
 
 .ecran { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 20px 16px; gap: 18px; overflow-y: auto; }
@@ -104,4 +107,37 @@ body {
 .resume-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 480px; }
 .carte-stat { background: var(--panneau); border-radius: 12px; padding: 12px; text-align: center; }
 .carte-stat .valeur { font-size: 1.3rem; font-weight: 800; }
+.carte-stat .valeur.positif { color: var(--vert); }
+.carte-stat .valeur.negatif { color: var(--rouge); }
 .carte-stat .libelle { color: var(--texte-faible); font-size: 0.8rem; margin-top: 2px; }
+
+/* --- fenêtre de dépôt --- */
+.voile {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 100;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.modale {
+  background: var(--fond); border: 1px solid #2C3E66; border-radius: 18px;
+  padding: 22px; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 14px;
+}
+.modale h3 { text-align: center; }
+.note-depot { color: var(--texte-faible); text-align: center; font-size: 0.9rem; }
+.grille-depot { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.grille-depot button {
+  background: var(--panneau); color: var(--texte); border: 2px solid #2C3E66;
+  border-radius: 12px; padding: 16px 0; font-size: 1.1rem; font-weight: 800;
+}
+.grille-depot button:active { background: var(--vert); color: #08331C; border-color: var(--vert); }
+.ligne-depot { display: flex; gap: 10px; }
+.ligne-depot input {
+  flex: 1; background: var(--panneau); border: 1px solid #2C3E66; color: var(--texte);
+  border-radius: 10px; padding: 12px; font-size: 1.05rem; text-align: center;
+}
+.ligne-depot button {
+  background: var(--vert); color: #08331C; border: none; border-radius: 10px;
+  padding: 12px 18px; font-weight: 800; font-size: 1rem;
+}
+.btn-fermer {
+  background: none; border: none; color: var(--texte-faible);
+  font-size: 1rem; padding: 8px; text-decoration: underline;
+}

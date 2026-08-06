@@ -6,14 +6,30 @@ function sauver() { Game.sauverDonnees(localStorage, donnees); }
 
 const $ = (id) => document.getElementById(id);
 
-// --- Solde + recharge ---
+// --- Solde + dépôts d'argent fictif ---
 function majSolde() {
   $('affiche-solde').textContent = donnees.solde;
-  $('btn-recharger').classList.toggle('cache', donnees.solde >= Game.MISE_MIN);
 }
-$('btn-recharger').addEventListener('click', () => {
-  donnees.solde = Game.SOLDE_DEPART;
+
+function deposerMontant(montant) {
+  const r = Game.deposer(donnees, montant);
+  if (!r.ok) { $('message-depot').textContent = r.erreur; return; }
   sauver(); majSolde();
+  $('message-depot').textContent = '';
+  $('voile-depot').classList.add('cache');
+}
+$('btn-deposer').addEventListener('click', () => {
+  $('champ-depot').value = '';
+  $('message-depot').textContent = '';
+  $('voile-depot').classList.remove('cache');
+});
+$('btn-fermer-depot').addEventListener('click', () => $('voile-depot').classList.add('cache'));
+document.querySelectorAll('.grille-depot button').forEach(b => {
+  b.addEventListener('click', () => deposerMontant(parseInt(b.dataset.depot, 10)));
+});
+$('btn-valider-depot').addEventListener('click', () => {
+  const montant = parseInt($('champ-depot').value, 10);
+  deposerMontant(Number.isNaN(montant) ? 0 : montant);
 });
 
 // --- Navigation ---
@@ -124,7 +140,7 @@ function encaisserMaintenant(maintenant) {
   etatJeu.miseEnCours = 0;
   sauver(); majSolde(); majBoutonAction();
   $('affiche-mult').classList.add('gagne');
-  $('message-vol').textContent = 'Encaissé : +' + res.gain + ' 🪙';
+  $('message-vol').textContent = 'Encaissé : +' + res.gain + ' €';
 }
 
 // --- Mise auto ---
@@ -246,7 +262,7 @@ function boucleJeu(maintenant) {
       terminerVol(maintenant);
     } else {
       $('affiche-mult').textContent = 'x' + m.toFixed(2);
-      if (etatJeu.miseEnCours > 0) $('btn-action').textContent = 'ENCAISSER ' + Math.round(etatJeu.miseEnCours * m) + ' 🪙';
+      if (etatJeu.miseEnCours > 0) $('btn-action').textContent = 'ENCAISSER ' + Math.round(etatJeu.miseEnCours * m) + ' €';
       const auto = parseFloat($('champ-auto').value);
       if (etatJeu.miseEnCours > 0 && !Number.isNaN(auto) && auto > 1 && m >= auto) encaisserMaintenant(maintenant);
       if (etatJeu.encaisseA === null) $('message-vol').textContent = '';
@@ -264,10 +280,18 @@ requestAnimationFrame(boucleJeu);
 
 // --- Écran stats ---
 let dureeStats = 'tout';
+let vueStats = 'capital';
 document.querySelectorAll('#selecteur-duree button').forEach(b => {
   b.addEventListener('click', () => {
     dureeStats = b.dataset.duree;
     document.querySelectorAll('#selecteur-duree button').forEach(x => x.classList.toggle('actif', x === b));
+    dessinerStats();
+  });
+});
+document.querySelectorAll('#selecteur-vue button').forEach(b => {
+  b.addEventListener('click', () => {
+    vueStats = b.dataset.vue;
+    document.querySelectorAll('#selecteur-vue button').forEach(x => x.classList.toggle('actif', x === b));
     dessinerStats();
   });
 });
@@ -282,15 +306,22 @@ function dessinerStats() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, larg, haut);
 
-  // série : capital de départ + solde après chaque manche jouée
-  const tout = [Game.SOLDE_DEPART, ...donnees.capitalHistorique];
+  // série selon la vue : capital (solde après chaque manche) ou bilan (gagné - misé)
+  const tout = vueStats === 'bilan'
+    ? [0, ...donnees.bilanHistorique]
+    : [Game.SOLDE_DEPART, ...donnees.capitalHistorique];
   const n = dureeStats === 'tout' ? tout.length : Math.min(tout.length, parseInt(dureeStats, 10) + 1);
   const serie = tout.slice(-n);
 
   const s = donnees.stats;
+  const leBilan = Game.bilan(donnees);
+  const signe = leBilan > 0 ? '+' : '';
+  const classeBilan = leBilan > 0 ? 'positif' : leBilan < 0 ? 'negatif' : '';
   $('resume-stats').innerHTML =
-    carte(s.nbParties, 'parties jouées') + carte(s.totalMise, 'total misé 🪙') +
-    carte(s.totalGagne, 'total gagné 🪙') + carte(s.plusGrosGain, 'plus gros gain 🪙');
+    carte(signe + leBilan + ' €', 'bilan (gagné - misé)', classeBilan) +
+    carte(s.totalDepose + ' €', 'total ajouté') +
+    carte(s.nbParties, 'parties jouées') + carte(s.totalMise + ' €', 'total misé') +
+    carte(s.totalGagne + ' €', 'total gagné') + carte(s.plusGrosGain + ' €', 'plus gros gain');
 
   if (serie.length < 2) {
     ctx.fillStyle = '#9BA4B4';
@@ -317,16 +348,18 @@ function dessinerStats() {
     ctx.fillText(Math.round(v), mg - 6, y(v) + 4);
   }
 
-  // ligne de départ (1000) si visible
-  if (Game.SOLDE_DEPART >= mini && Game.SOLDE_DEPART <= maxi) {
+  // ligne de référence (zéro) si visible
+  if (0 >= mini && 0 <= maxi) {
     ctx.strokeStyle = 'rgba(241,196,15,0.35)';
     ctx.setLineDash([4, 4]);
-    ctx.beginPath(); ctx.moveTo(mg, y(Game.SOLDE_DEPART)); ctx.lineTo(larg - md, y(Game.SOLDE_DEPART)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(mg, y(0)); ctx.lineTo(larg - md, y(0)); ctx.stroke();
     ctx.setLineDash([]);
   }
 
-  // aire + courbe, couleur selon tendance
-  const gagne = serie[serie.length - 1] >= serie[0];
+  // aire + courbe, couleur selon tendance (bilan : au-dessus/en-dessous de zéro)
+  const gagne = vueStats === 'bilan'
+    ? serie[serie.length - 1] >= 0
+    : serie[serie.length - 1] >= serie[0];
   const couleur = gagne ? '#2ECC71' : '#E74C3C';
   ctx.beginPath();
   serie.forEach((v, i) => i === 0 ? ctx.moveTo(x(i), y(v)) : ctx.lineTo(x(i), y(v)));
@@ -339,15 +372,16 @@ function dessinerStats() {
   const dx = x(serie.length - 1), dy = y(serie[serie.length - 1]);
   ctx.beginPath(); ctx.arc(dx, dy, 4, 0, Math.PI * 2); ctx.fillStyle = couleur; ctx.fill();
   ctx.textAlign = 'center'; ctx.fillStyle = '#EAEAEA'; ctx.font = 'bold 13px -apple-system, sans-serif';
-  ctx.fillText(serie[serie.length - 1] + ' 🪙', Math.min(dx, larg - 40), Math.max(14, dy - 10));
+  const valFin = serie[serie.length - 1];
+  ctx.fillText((vueStats === 'bilan' && valFin > 0 ? '+' : '') + valFin + ' €', Math.min(dx, larg - 40), Math.max(14, dy - 10));
 
   // libellé axe X
   ctx.fillStyle = '#9BA4B4'; ctx.font = '11px -apple-system, sans-serif';
   ctx.fillText((serie.length - 1) + ' dernière(s) partie(s)', larg / 2, haut - 8);
 }
 
-function carte(valeur, libelle) {
-  return '<div class="carte-stat"><div class="valeur">' + valeur + '</div><div class="libelle">' + libelle + '</div></div>';
+function carte(valeur, libelle, classe) {
+  return '<div class="carte-stat"><div class="valeur ' + (classe || '') + '">' + valeur + '</div><div class="libelle">' + libelle + '</div></div>';
 }
 
 majSolde();

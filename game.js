@@ -5,18 +5,23 @@
   const AVIONS = [
     { id: 'lufthansa', nom: 'Lufthansa A380', img: 'img/lufthansa.png' },
     { id: 'emirates',  nom: 'Emirates A380',  img: 'img/emirates.png' },
+    { id: 'airfrance', nom: 'Air France A380', img: 'img/airfrance.png' },
+    { id: 'united',    nom: 'United A380',     img: 'img/united.png' },
+    { id: 'british',   nom: 'British Airways A380', img: 'img/british.png' },
   ];
 
-  const MISE_MIN = 10;
-  const SOLDE_DEPART = 1000;
+  const MISE_MIN = 1;
+  const SOLDE_DEPART = 0;
+  const DEPOT_MAX = 100000;
   const MAX_CRASHS = 20;
 
   const DONNEES_DEFAUT = Object.freeze({
     solde: SOLDE_DEPART,
     avion: 'lufthansa',
     capitalHistorique: [],
+    bilanHistorique: [],
     crashHistorique: [],
-    stats: { totalMise: 0, totalGagne: 0, plusGrosGain: 0, nbParties: 0 },
+    stats: { totalMise: 0, totalGagne: 0, plusGrosGain: 0, nbParties: 0, totalDepose: 0 },
   });
 
   function neufDonnees() {
@@ -43,11 +48,20 @@
     if (Number.isFinite(lu.solde) && lu.solde >= 0) d.solde = Math.floor(lu.solde);
     if (AVIONS.some(a => a.id === lu.avion)) d.avion = lu.avion;
     if (Array.isArray(lu.capitalHistorique)) d.capitalHistorique = lu.capitalHistorique.filter(Number.isFinite);
+    if (Array.isArray(lu.bilanHistorique)) d.bilanHistorique = lu.bilanHistorique.filter(Number.isFinite);
     if (Array.isArray(lu.crashHistorique)) d.crashHistorique = lu.crashHistorique.filter(Number.isFinite).slice(-MAX_CRASHS);
     if (lu.stats && typeof lu.stats === 'object') {
-      for (const k of ['totalMise', 'totalGagne', 'plusGrosGain', 'nbParties']) {
+      for (const k of ['totalMise', 'totalGagne', 'plusGrosGain', 'nbParties', 'totalDepose']) {
         if (Number.isFinite(lu.stats[k]) && lu.stats[k] >= 0) d.stats[k] = lu.stats[k];
       }
+    }
+    // migration des anciennes sauvegardes (avant les dépôts) : le solde existant
+    // est considéré comme déposé, pour que le bilan (gagné - misé) reste juste
+    if (!(lu.stats && Number.isFinite(lu.stats.totalDepose))) {
+      d.stats.totalDepose = Math.max(0, d.solde - (d.stats.totalGagne - d.stats.totalMise));
+    }
+    if (!Array.isArray(lu.bilanHistorique) && d.capitalHistorique.length > 0) {
+      d.bilanHistorique = [];
     }
     return d;
   }
@@ -58,11 +72,23 @@
 
   function placerMise(donnees, montant) {
     if (!Number.isInteger(montant)) return { ok: false, erreur: 'La mise doit être un nombre entier.' };
-    if (montant < MISE_MIN) return { ok: false, erreur: 'Mise minimum : ' + MISE_MIN + ' jetons.' };
+    if (montant < MISE_MIN) return { ok: false, erreur: 'Mise minimum : ' + MISE_MIN + ' €.' };
     if (montant > donnees.solde) return { ok: false, erreur: 'Solde insuffisant.' };
     donnees.solde -= montant;
     donnees.stats.totalMise += montant;
     return { ok: true };
+  }
+
+  function deposer(donnees, montant) {
+    if (!Number.isInteger(montant) || montant < 1) return { ok: false, erreur: 'Montant invalide (minimum 1 €).' };
+    if (montant > DEPOT_MAX) return { ok: false, erreur: 'Maximum ' + DEPOT_MAX + ' € par dépôt.' };
+    donnees.solde += montant;
+    donnees.stats.totalDepose += montant;
+    return { ok: true };
+  }
+
+  function bilan(donnees) {
+    return donnees.stats.totalGagne - donnees.stats.totalMise;
   }
 
   function resoudreManche(donnees, manche) {
@@ -75,6 +101,7 @@
     }
     donnees.stats.nbParties += 1;
     donnees.capitalHistorique.push(donnees.solde);
+    donnees.bilanHistorique.push(bilan(donnees));
     return { gain };
   }
 
@@ -86,9 +113,9 @@
   }
 
   const api = {
-    AVIONS, DONNEES_DEFAUT, MISE_MIN, SOLDE_DEPART,
+    AVIONS, DONNEES_DEFAUT, MISE_MIN, SOLDE_DEPART, DEPOT_MAX,
     tirerCrash, chargerDonnees, sauverDonnees,
-    placerMise, resoudreManche, enregistrerCrash,
+    placerMise, resoudreManche, enregistrerCrash, deposer, bilan,
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

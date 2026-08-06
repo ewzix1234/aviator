@@ -13,8 +13,8 @@
 <body>
   <header class="entete">
     <button id="btn-retour-salon" class="btn-retour cache">← Salon</button>
-    <div class="solde">🪙 <span id="affiche-solde">1000</span></div>
-    <button id="btn-recharger" class="btn-recharger cache">Recharger</button>
+    <div class="solde"><span id="affiche-solde">0</span> €</div>
+    <button id="btn-deposer" class="btn-deposer">＋ Ajouter</button>
   </header>
 
   <!-- ÉCRAN SALON -->
@@ -44,7 +44,7 @@
     <div class="panneau-mise">
       <div class="ligne-mise">
         <label for="champ-mise">Mise</label>
-        <input id="champ-mise" type="number" inputmode="numeric" min="10" step="10" value="50">
+        <input id="champ-mise" type="number" inputmode="numeric" min="1" step="1" value="10">
         <div class="mises-rapides">
           <button data-mise="10">10</button><button data-mise="50">50</button>
           <button data-mise="100">100</button><button data-mise="max">MAX</button>
@@ -62,7 +62,11 @@
 
   <!-- ÉCRAN STATS -->
   <section id="ecran-stats" class="ecran cache">
-    <h2>📈 Évolution du capital</h2>
+    <h2>📈 Mon évolution</h2>
+    <div class="selecteur-duree" id="selecteur-vue">
+      <button data-vue="capital" class="actif">Capital</button>
+      <button data-vue="bilan">Bilan ±</button>
+    </div>
     <div class="selecteur-duree" id="selecteur-duree">
       <button data-duree="10">10</button>
       <button data-duree="25">25</button>
@@ -72,6 +76,28 @@
     <canvas id="canvas-stats"></canvas>
     <div id="resume-stats" class="resume-stats"></div>
   </section>
+
+  <!-- FENÊTRE DE DÉPÔT -->
+  <div id="voile-depot" class="voile cache">
+    <div class="modale">
+      <h3>💶 Ajouter de l'argent fictif</h3>
+      <p class="note-depot">C'est du faux argent, ajoute ce que tu veux !</p>
+      <div class="grille-depot">
+        <button data-depot="10">10 €</button>
+        <button data-depot="20">20 €</button>
+        <button data-depot="50">50 €</button>
+        <button data-depot="100">100 €</button>
+        <button data-depot="200">200 €</button>
+        <button data-depot="500">500 €</button>
+      </div>
+      <div class="ligne-depot">
+        <input id="champ-depot" type="number" inputmode="numeric" min="1" placeholder="Montant libre">
+        <button id="btn-valider-depot">Ajouter</button>
+      </div>
+      <div id="message-depot" class="message-erreur"></div>
+      <button id="btn-fermer-depot" class="btn-fermer">Fermer</button>
+    </div>
+  </div>
 
   <script src="game.js"></script>
   <script src="app.js"></script>

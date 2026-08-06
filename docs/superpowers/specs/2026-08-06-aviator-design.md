@@ -42,25 +42,35 @@ Le solde fictif est affiché en permanence en haut, partagé entre tous les écr
 
 ### 3. Stats
 
-- **Courbe d'évolution du capital** : graphe en ligne du solde après chaque manche jouée.
+- **Sélecteur de vue** (ajout 2026-08-07) : **Capital** (solde après chaque manche) ou
+  **Bilan ±** (gagné − misé cumulé, positif ou négatif, ligne de zéro en pointillés ;
+  courbe verte au-dessus de zéro, rouge en dessous).
 - **Sélecteur de durée** : 10 / 25 / 50 dernières parties / **Tout** (depuis le début).
-- Stats complémentaires : total misé, total gagné, plus gros gain, nombre de parties.
-- Rendu du graphe en canvas (ou SVG), sans librairie.
+- 6 cartes : bilan (coloré vert/rouge), total ajouté, parties jouées, total misé,
+  total gagné, plus gros gain.
+- Rendu du graphe en canvas, sans librairie.
 
 ## Logique du jeu
 
 - **Tirage du crash** : distribution type Aviator, `crash = max(1.00, 0.99 / (1 - r))`
   avec `r` uniforme [0,1) — médiane ≈ x2, beaucoup de petits crashs, rares gros x50+.
   Plafond raisonnable (ex. x1000).
-- **Solde de départ** : 1 000 jetons. Bouton **Recharger** (remet 1 000) visible quand
-  le solde est trop bas pour miser.
+- **Solde de départ** : 0 € (mise à jour du 2026-08-07 — avant : 1 000 jetons).
+  Bouton **＋ Ajouter** toujours visible dans l'en-tête : ouvre une fenêtre de dépôt
+  d'argent fictif façon Winamax (montants rapides 10/20/50/100/200/500 € + champ libre,
+  plafond 100 000 € par dépôt). Le total déposé est suivi dans `stats.totalDepose`,
+  ce qui permet de distinguer le solde du **bilan réel** (gagné − misé).
+- **Monnaie** : euros (€) partout, plus de jetons 🪙.
 - La logique pure (tirage, gains, historique du capital) vit dans `game.js`, séparée du
   DOM/canvas, pour être testable indépendamment.
 
 ## Avions
 
-- 2 avions au départ, images fournies par Elliot (stickers A380 Lufthansa et Emirates),
-  **détourées** (fond flou supprimé) et copiées dans `img/`.
+- 2 avions issus d'images fournies par Elliot (stickers A380 Lufthansa et Emirates),
+  **détourées** avec `tools/detourer.swift` (Vision) et copiées dans `img/`.
+- 3 livrées **dessinées à la main en SVG** (ajout 2026-08-07) : Air France, United,
+  British Airways. Source éditable : `tools/livrees.html` (un `<svg>` par compagnie,
+  même gabarit d'A380) ; rendu en PNG transparent 570×260 via Playwright.
 - Liste des avions déclarée dans un petit tableau JS (`id`, `nom`, `fichier image`) →
   en ajouter un nouveau = déposer une image + une ligne dans le tableau.
 

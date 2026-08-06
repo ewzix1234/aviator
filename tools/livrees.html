@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><style>body{margin:0;background:transparent}svg{display:block;margin:10px}</style></head>
+<body>
+<!-- Base A380 cartoon, nez à droite, même sens que les stickers existants -->
+
+<!-- AIR FRANCE : blanc, titres bleu marine, dérive blanche à bandes bleues + accent rouge -->
+<svg id="airfrance" width="1140" height="520" viewBox="0 0 1140 520" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="#D8DCE2" stroke-width="2">
+    <!-- stabilisateur horizontal -->
+    <path d="M175,296 L72,352 L96,360 L208,322 Z" fill="#F4F6F8"/>
+    <!-- dérive -->
+    <path d="M158,222 C120,150 118,100 130,78 L212,78 C260,120 278,180 286,224 Z" fill="#FFFFFF"/>
+    <!-- bandes Air France sur la dérive -->
+    <g stroke="none">
+      <path d="M147,205 C130,160 126,120 130,95 L152,95 C150,130 156,170 168,207 Z" fill="#00265F"/>
+      <path d="M178,206 C166,168 162,130 164,98 L186,98 C186,132 194,172 206,208 Z" fill="#00265F"/>
+      <path d="M214,207 C204,172 200,138 202,108 L222,112 C226,144 234,178 242,210 Z" fill="#E32219"/>
+    </g>
+    <!-- fuselage -->
+    <path d="M132,268 C132,226 190,208 300,206 L880,204 C985,204 1035,224 1058,256 Q1067,269 1058,282 C1035,314 985,330 880,330 L300,328 C190,326 132,310 132,268 Z" fill="#FFFFFF"/>
+    <!-- ventre gris clair -->
+    <path d="M140,290 C160,314 220,326 300,327 L880,329 C960,329 1015,314 1044,290 L1050,296 C1020,322 960,332 880,332 L300,330 C210,329 158,316 136,296 Z" fill="#C9CFD8" stroke="none"/>
+    <!-- aile -->
+    <path d="M520,296 C560,300 640,312 700,330 L836,398 C842,402 838,410 830,408 L640,362 C580,346 536,320 512,302 Z" fill="#E9ECF0"/>
+    <!-- réacteurs -->
+    <g stroke="none">
+      <rect x="556" y="336" width="26" height="18" fill="#B9C0CA"/>
+      <rect x="700" y="360" width="26" height="18" fill="#B9C0CA"/>
+      <rect x="530" y="344" width="86" height="42" rx="20" fill="#FFFFFF" stroke="#D8DCE2" stroke-width="2"/>
+      <rect x="676" y="368" width="86" height="42" rx="20" fill="#FFFFFF" stroke="#D8DCE2" stroke-width="2"/>
+      <ellipse cx="608" cy="365" rx="9" ry="17" fill="#2A3140"/>
+      <ellipse cx="754" cy="389" rx="9" ry="17" fill="#2A3140"/>
+    </g>
+  </g>
+  <!-- cockpit -->
+  <path d="M1008,238 L1046,252 C1052,255 1052,260 1046,262 L1004,262 C998,258 1000,242 1008,238 Z" fill="#2A3140"/>
+  <!-- hublots pont sup -->
+  <g fill="#8B93A2">
+    <rect x="310" y="232" width="620" height="7" rx="3.5" opacity="0.85"/>
+    <rect x="310" y="276" width="640" height="7" rx="3.5" opacity="0.85"/>
+  </g>
+  <!-- portes -->
+  <g fill="none" stroke="#AEB6C2" stroke-width="2">
+    <rect x="330" y="250" width="13" height="22" rx="5"/>
+    <rect x="560" y="250" width="13" height="22" rx="5"/>
+    <rect x="820" y="250" width="13" height="22" rx="5"/>
+  </g>
+  <!-- titre -->
+  <text x="640" y="266" font-family="Helvetica, Arial, sans-serif" font-size="38" font-weight="bold" fill="#00265F" text-anchor="middle" letter-spacing="1">AIRFRANCE</text>
+  <text x="965" y="266" font-family="Helvetica, Arial, sans-serif" font-size="16" font-weight="bold" fill="#E32219" text-anchor="middle">/</text>
+</svg>
+
+<!-- UNITED : blanc dessus, ventre bleu, dérive bleue avec globe -->
+<svg id="united" width="1140" height="520" viewBox="0 0 1140 520" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="clipFinU"><path d="M158,222 C120,150 118,100 130,78 L212,78 C260,120 278,180 286,224 Z"/></clipPath>
+  </defs>
+  <g stroke="#D8DCE2" stroke-width="2">
+    <path d="M175,296 L72,352 L96,360 L208,322 Z" fill="#F4F6F8"/>
+    <path d="M158,222 C120,150 118,100 130,78 L212,78 C260,120 278,180 286,224 Z" fill="#0A2B6C"/>
+    <g clip-path="url(#clipFinU)" stroke="none">
+      <circle cx="208" cy="150" r="52" fill="none" stroke="#4E9FE0" stroke-width="7"/>
+      <path d="M156,150 L260,150 M164,124 L252,124 M164,176 L252,176" stroke="#4E9FE0" stroke-width="6" fill="none"/>
+      <path d="M208,98 C186,120 178,180 208,202 M208,98 C230,120 238,180 208,202" stroke="#4E9FE0" stroke-width="6" fill="none"/>
+    </g>
+    <path d="M132,268 C132,226 190,208 300,206 L880,204 C985,204 1035,224 1058,256 Q1067,269 1058,282 C1035,314 985,330 880,330 L300,328 C190,326 132,310 132,268 Z" fill="#FFFFFF"/>
+    <path d="M138,286 C158,312 220,325 300,326 L880,328 C965,328 1022,310 1048,284 L1058,282 C1035,314 985,330 880,330 L300,328 C190,326 132,310 132,268 Z" fill="#0A2B6C" stroke="none"/>
+    <path d="M520,296 C560,300 640,312 700,330 L836,398 C842,402 838,410 830,408 L640,362 C580,346 536,320 512,302 Z" fill="#E9ECF0"/>
+    <g stroke="none">
+      <rect x="556" y="336" width="26" height="18" fill="#B9C0CA"/>
+      <rect x="700" y="360" width="26" height="18" fill="#B9C0CA"/>
+      <rect x="530" y="344" width="86" height="42" rx="20" fill="#FFFFFF" stroke="#D8DCE2" stroke-width="2"/>
+      <rect x="676" y="368" width="86" height="42" rx="20" fill="#FFFFFF" stroke="#D8DCE2" stroke-width="2"/>
+      <ellipse cx="608" cy="365" rx="9" ry="17" fill="#2A3140"/>
+      <ellipse cx="754" cy="389" rx="9" ry="17" fill="#2A3140"/>
+    </g>
+  </g>
+  <path d="M1008,238 L1046,252 C1052,255 1052,260 1046,262 L1004,262 C998,258 1000,242 1008,238 Z" fill="#2A3140"/>
+  <g fill="#8B93A2">
+    <rect x="310" y="232" width="620" height="7" rx="3.5" opacity="0.85"/>
+    <rect x="310" y="272" width="640" height="7" rx="3.5" opacity="0.85"/>
+  </g>
+  <g fill="none" stroke="#AEB6C2" stroke-width="2">
+    <rect x="330" y="248" width="13" height="20" rx="5"/>
+    <rect x="560" y="248" width="13" height="20" rx="5"/>
+    <rect x="820" y="248" width="13" height="20" rx="5"/>
+  </g>
+  <text x="640" y="262" font-family="Helvetica, Arial, sans-serif" font-size="40" font-weight="bold" fill="#0A2B6C" text-anchor="middle" letter-spacing="4">UNITED</text>
+</svg>
+
+<!-- BRITISH AIRWAYS : blanc, ruban rouge/bleu sur la dérive, speedmarque rouge -->
+<svg id="british" width="1140" height="520" viewBox="0 0 1140 520" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="clipFinB"><path d="M158,222 C120,150 118,100 130,78 L212,78 C260,120 278,180 286,224 Z"/></clipPath>
+  </defs>
+  <g stroke="#D8DCE2" stroke-width="2">
+    <path d="M175,296 L72,352 L96,360 L208,322 Z" fill="#F4F6F8"/>
+    <path d="M158,222 C120,150 118,100 130,78 L212,78 C260,120 278,180 286,224 Z" fill="#FFFFFF"/>
+    <g clip-path="url(#clipFinB)" stroke="none">
+      <path d="M110,60 L310,240 L310,150 L160,40 Z" fill="#00247D"/>
+      <path d="M100,120 C160,150 230,200 300,240 L240,240 C180,205 130,170 96,150 Z" fill="#CF142B"/>
+      <path d="M104,98 C170,132 240,185 306,232 L296,244 C230,196 160,144 100,112 Z" fill="#FFFFFF"/>
+    </g>
+    <path d="M132,268 C132,226 190,208 300,206 L880,204 C985,204 1035,224 1058,256 Q1067,269 1058,282 C1035,314 985,330 880,330 L300,328 C190,326 132,310 132,268 Z" fill="#FFFFFF"/>
+    <path d="M140,290 C160,314 220,326 300,327 L880,329 C960,329 1015,314 1044,290 L1050,296 C1020,322 960,332 880,332 L300,330 C210,329 158,316 136,296 Z" fill="#00247D" stroke="none"/>
+    <path d="M520,296 C560,300 640,312 700,330 L836,398 C842,402 838,410 830,408 L640,362 C580,346 536,320 512,302 Z" fill="#E9ECF0"/>
+    <g stroke="none">
+      <rect x="556" y="336" width="26" height="18" fill="#B9C0CA"/>
+      <rect x="700" y="360" width="26" height="18" fill="#B9C0CA"/>
+      <rect x="530" y="344" width="86" height="42" rx="20" fill="#FFFFFF" stroke="#D8DCE2" stroke-width="2"/>
+      <rect x="676" y="368" width="86" height="42" rx="20" fill="#FFFFFF" stroke="#D8DCE2" stroke-width="2"/>
+      <ellipse cx="608" cy="365" rx="9" ry="17" fill="#2A3140"/>
+      <ellipse cx="754" cy="389" rx="9" ry="17" fill="#2A3140"/>
+    </g>
+  </g>
+  <path d="M1008,238 L1046,252 C1052,255 1052,260 1046,262 L1004,262 C998,258 1000,242 1008,238 Z" fill="#2A3140"/>
+  <g fill="#8B93A2">
+    <rect x="310" y="232" width="620" height="7" rx="3.5" opacity="0.85"/>
+    <rect x="310" y="276" width="640" height="7" rx="3.5" opacity="0.85"/>
+  </g>
+  <g fill="none" stroke="#AEB6C2" stroke-width="2">
+    <rect x="330" y="250" width="13" height="22" rx="5"/>
+    <rect x="560" y="250" width="13" height="22" rx="5"/>
+    <rect x="820" y="250" width="13" height="22" rx="5"/>
+  </g>
+  <text x="620" y="266" font-family="Helvetica, Arial, sans-serif" font-size="34" font-weight="bold" fill="#00247D" text-anchor="middle" letter-spacing="1">BRITISH AIRWAYS</text>
+  <path d="M920,246 C950,240 990,240 1010,246 C990,252 950,252 920,246 Z" fill="#CF142B"/>
+</svg>
+
+</body>
+</html>
