@@ -1,4 +1,4 @@
-const CACHE = 'aviator-v1';
+const CACHE = 'aviator-v2';
 const FICHIERS = [
   '.', 'index.html', 'style.css', 'app.js', 'game.js', 'manifest.json',
   'img/lufthansa.png', 'img/emirates.png', 'img/icon-192.png', 'img/icon-512.png',

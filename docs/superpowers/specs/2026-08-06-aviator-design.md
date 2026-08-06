@@ -35,6 +35,10 @@ Le solde fictif est affiché en permanence en haut, partagé entre tous les écr
 - **Historique** : bandeau des derniers multiplicateurs de crash, coloré
   (rouge < x2, vert ≥ x2, doré ≥ x10).
 - Bouton **← Salon**, désactivé pendant un vol avec mise active (évite de perdre une mise par erreur).
+- **Mise auto** (ajout du 2026-08-07) : interrupteur « 🔁 Mise auto » qui replace
+  automatiquement la mise du champ au début de chaque manche. Se désactive tout seul
+  (avec message) si la mise devient invalide ou le solde insuffisant. Non persisté :
+  repart sur OFF à chaque chargement de page.
 
 ### 3. Stats
 

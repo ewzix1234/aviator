@@ -87,6 +87,12 @@ body {
 }
 .message-erreur { color: var(--rouge); text-align: center; min-height: 1.2em; font-size: 0.95rem; }
 
+.btn-toggle {
+  background: var(--panneau); color: var(--texte-faible); border: 2px solid #2C3E66;
+  border-radius: 10px; padding: 12px 0; font-size: 1rem; font-weight: 700; width: 100%;
+}
+.btn-toggle.actif { background: var(--accent); border-color: var(--accent); color: white; }
+
 #ecran-stats h2 { margin-top: 8px; }
 .selecteur-duree { display: flex; gap: 8px; }
 .selecteur-duree button {

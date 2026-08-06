@@ -127,12 +127,39 @@ function encaisserMaintenant(maintenant) {
   $('message-vol').textContent = 'Encaissé : +' + res.gain + ' 🪙';
 }
 
+// --- Mise auto ---
+let autoMiseActive = false;
+function majBoutonAutoMise() {
+  $('btn-auto-mise').textContent = '🔁 Mise auto : ' + (autoMiseActive ? 'ON' : 'OFF');
+  $('btn-auto-mise').classList.toggle('actif', autoMiseActive);
+}
+$('btn-auto-mise').addEventListener('click', () => {
+  autoMiseActive = !autoMiseActive;
+  $('message-erreur').textContent = '';
+  majBoutonAutoMise();
+});
+
+function placerMiseAuto() {
+  if (!autoMiseActive || etatJeu.miseProchaine > 0) return;
+  const montant = parseInt($('champ-mise').value, 10);
+  const r = Game.placerMise(donnees, Number.isNaN(montant) ? 0 : montant);
+  if (!r.ok) {
+    autoMiseActive = false;
+    majBoutonAutoMise();
+    $('message-erreur').textContent = 'Mise auto désactivée : ' + r.erreur.toLowerCase();
+    return;
+  }
+  etatJeu.miseProchaine = montant;
+  sauver(); majSolde();
+}
+
 function demarrerAttente(maintenant) {
   etatJeu.phase = 'ATTENTE';
   etatJeu.finAttente = maintenant + DUREE_ATTENTE * 1000;
   etatJeu.miseProchaine = 0;
   etatJeu.encaisseA = null;
   $('affiche-mult').classList.remove('crash', 'gagne');
+  placerMiseAuto();
   majBandeCrashs(); majBoutonAction();
 }
 
