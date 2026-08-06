@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#16213E">
+  <title>Aviator — argent fictif</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="img/icon-192.png">
+</head>
+<body>
+  <header class="entete">
+    <button id="btn-retour-salon" class="btn-retour cache">← Salon</button>
+    <div class="solde">🪙 <span id="affiche-solde">1000</span></div>
+    <button id="btn-recharger" class="btn-recharger cache">Recharger</button>
+  </header>
+
+  <!-- ÉCRAN SALON -->
+  <section id="ecran-salon" class="ecran">
+    <h1 class="titre">AVIATOR</h1>
+    <p class="sous-titre">Argent 100 % fictif — juste pour s'amuser</p>
+    <div class="carrousel">
+      <button id="btn-avion-prec" class="fleche" aria-label="Avion précédent">◀</button>
+      <div class="avion-vitrine">
+        <img id="img-avion-salon" src="img/lufthansa.png" alt="Avion sélectionné">
+        <div id="nom-avion" class="nom-avion">Lufthansa A380</div>
+      </div>
+      <button id="btn-avion-suiv" class="fleche" aria-label="Avion suivant">▶</button>
+    </div>
+    <button id="btn-jouer" class="btn-principal">JOUER</button>
+    <button id="btn-stats" class="btn-secondaire">📈 Mes stats</button>
+  </section>
+
+  <!-- ÉCRAN JEU -->
+  <section id="ecran-jeu" class="ecran cache">
+    <div id="bande-crashs" class="bande-crashs"></div>
+    <div class="zone-vol">
+      <canvas id="canvas-vol"></canvas>
+      <div id="affiche-mult" class="mult">x1.00</div>
+      <div id="message-vol" class="message-vol">Prochain vol dans <span id="compte-rebours">5</span> s</div>
+    </div>
+    <div class="panneau-mise">
+      <div class="ligne-mise">
+        <label for="champ-mise">Mise</label>
+        <input id="champ-mise" type="number" inputmode="numeric" min="10" step="10" value="50">
+        <div class="mises-rapides">
+          <button data-mise="10">10</button><button data-mise="50">50</button>
+          <button data-mise="100">100</button><button data-mise="max">MAX</button>
+        </div>
+      </div>
+      <div class="ligne-mise">
+        <label for="champ-auto">Auto-encaisser à</label>
+        <input id="champ-auto" type="number" inputmode="decimal" min="1.1" step="0.1" placeholder="x (optionnel)">
+      </div>
+      <button id="btn-action" class="btn-principal">MISER</button>
+      <div id="message-erreur" class="message-erreur"></div>
+    </div>
+  </section>
+
+  <!-- ÉCRAN STATS -->
+  <section id="ecran-stats" class="ecran cache">
+    <h2>📈 Évolution du capital</h2>
+    <div class="selecteur-duree" id="selecteur-duree">
+      <button data-duree="10">10</button>
+      <button data-duree="25">25</button>
+      <button data-duree="50">50</button>
+      <button data-duree="tout" class="actif">Tout</button>
+    </div>
+    <canvas id="canvas-stats"></canvas>
+    <div id="resume-stats" class="resume-stats"></div>
+  </section>
+
+  <script src="game.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
