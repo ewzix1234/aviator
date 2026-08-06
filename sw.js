@@ -1,4 +1,4 @@
-const CACHE = 'aviator-v6';
+const CACHE = 'aviator-v7';
 // Les images d'avions ne sont pas listées : elles sont mises en cache à la volée
 // par le gestionnaire fetch, ce qui évite de casser l'installation quand un
 // fichier img/avionN.png n'a pas encore été déposé.

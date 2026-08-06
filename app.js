@@ -227,8 +227,10 @@ document.querySelectorAll('.mises-rapides button').forEach(b => {
   });
 });
 
-function encaisserMaintenant(maintenant) {
-  const m = Math.min(multCourant(maintenant), etatJeu.crashA);
+// multImpose : utilisé par l'auto-encaissement, qui doit tomber pile sur la cible
+// demandée et non sur le multiplicateur de l'image courante (qui peut l'avoir dépassée).
+function encaisserMaintenant(maintenant, multImpose) {
+  const m = Math.min(multImpose || multCourant(maintenant), etatJeu.crashA);
   etatJeu.encaisseA = Math.floor(m * 100) / 100;
   const res = Game.resoudreManche(donnees, { mise: etatJeu.miseEnCours, crash: etatJeu.crashA, encaisseA: etatJeu.encaisseA });
   etatJeu.miseEnCours = 0;
@@ -353,13 +355,18 @@ function boucleJeu(maintenant) {
     if (maintenant >= etatJeu.finAttente) demarrerVol(maintenant);
   } else if (etatJeu.phase === 'VOL') {
     const m = multCourant(maintenant);
-    if (m >= etatJeu.crashA) {
+    // L'auto-encaissement est évalué AVANT le crash : une cible atteinte pile au
+    // multiplicateur de crash est encaissée, comme dans les vrais jeux de crash.
+    // Tester le crash d'abord ferait perdre ces manches et baisserait le RTP à ~96,3 %.
+    const auto = parseFloat($('champ-auto').value);
+    const autoValide = etatJeu.miseEnCours > 0 && !Number.isNaN(auto) && auto > 1;
+    if (autoValide && m >= auto && auto <= etatJeu.crashA) {
+      encaisserMaintenant(maintenant, auto);
+    } else if (m >= etatJeu.crashA) {
       terminerVol(maintenant);
     } else {
       $('affiche-mult').textContent = 'x' + m.toFixed(2);
       if (etatJeu.miseEnCours > 0) $('btn-action').textContent = 'ENCAISSER ' + eur(etatJeu.miseEnCours * m) + ' €';
-      const auto = parseFloat($('champ-auto').value);
-      if (etatJeu.miseEnCours > 0 && !Number.isNaN(auto) && auto > 1 && m >= auto) encaisserMaintenant(maintenant);
       if (etatJeu.encaisseA === null) $('message-vol').textContent = '';
     }
   } else if (etatJeu.phase === 'CRASH') {
