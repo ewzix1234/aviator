@@ -326,3 +326,7 @@ function carte(valeur, libelle) {
 majSolde();
 majAvion();
 afficherEcran('salon');
+
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js');
+}
