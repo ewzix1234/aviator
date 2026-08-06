@@ -16,8 +16,17 @@ function avecSecours(img) {
 }
 
 // --- Solde + ajout d'argent ---
+// Les montants s'affichent au centime, sauf quand ils tombent juste (40 € et non 40,00 €).
+function eur(v) {
+  const n = Game.arrondi2(v);
+  return Number.isInteger(n) ? String(n) : n.toFixed(2);
+}
+function lireMontant(champ) {
+  return Game.arrondi2(parseFloat($(champ).value));
+}
+
 function majSolde() {
-  $('affiche-solde').textContent = donnees.solde;
+  $('affiche-solde').textContent = eur(donnees.solde);
 }
 
 function deposerMontant(montant) {
@@ -38,7 +47,7 @@ document.querySelectorAll('.grille-depot button').forEach(b => {
   b.addEventListener('click', () => deposerMontant(parseInt(b.dataset.depot, 10)));
 });
 $('btn-valider-depot').addEventListener('click', () => {
-  const montant = parseInt($('champ-depot').value, 10);
+  const montant = lireMontant('champ-depot');
   deposerMontant(Number.isNaN(montant) ? 0 : montant);
 });
 
@@ -139,7 +148,10 @@ function acheter(id) {
 }
 
 // --- Écran jeu : machine à états ---
-const K_CROISSANCE = 0.075;           // m(t) = e^(k*t) : x2 vers ~9 s
+// Courbe exponentielle m(t) = e^(k*t), calée sur le rythme de l'Aviator original :
+// la manche médiane (crash ~x1.94) dure ~8 s, x5 vers 19 s, x10 vers 28 s — soit la
+// fourchette de 8 à 30 s des manches réelles.
+const K_CROISSANCE = 0.083;
 const DUREE_ATTENTE = 5;              // secondes
 const DUREE_APRES_CRASH = 2.5;        // secondes
 
@@ -180,11 +192,11 @@ function majBoutonAction() {
   btn.classList.toggle('mode-encaisser', enVolAvecMise);
   if (enVolAvecMise) {
     // le montant exact est rafraîchi à chaque image par boucleJeu
-    btn.textContent = 'ENCAISSER ' + etatJeu.miseEnCours + ' €';
+    btn.textContent = 'ENCAISSER ' + eur(etatJeu.miseEnCours) + ' €';
     btn.disabled = false;
   } else if (etatJeu.miseProchaine > 0) {
     btn.textContent = etatJeu.phase === 'ATTENTE'
-      ? 'MISE PLACÉE : ' + etatJeu.miseProchaine + ' €'
+      ? 'MISE PLACÉE : ' + eur(etatJeu.miseProchaine) + ' €'
       : 'MISE PLACÉE POUR LE PROCHAIN VOL';
     btn.disabled = true;
   } else {
@@ -199,7 +211,7 @@ $('btn-action').addEventListener('click', () => {
   if (etatJeu.phase === 'VOL' && etatJeu.miseEnCours > 0) {
     encaisserMaintenant(performance.now());
   } else if (etatJeu.miseProchaine === 0) {
-    const montant = parseInt($('champ-mise').value, 10);
+    const montant = lireMontant('champ-mise');
     const r = Game.placerMise(donnees, Number.isNaN(montant) ? 0 : montant);
     if (!r.ok) { $('message-erreur').textContent = r.erreur; return; }
     etatJeu.miseProchaine = montant;
@@ -211,6 +223,7 @@ $('btn-action').addEventListener('click', () => {
 document.querySelectorAll('.mises-rapides button').forEach(b => {
   b.addEventListener('click', () => {
     $('champ-mise').value = b.dataset.mise === 'max' ? Math.max(Game.MISE_MIN, donnees.solde) : b.dataset.mise;
+    $('message-erreur').textContent = '';
   });
 });
 
@@ -221,7 +234,7 @@ function encaisserMaintenant(maintenant) {
   etatJeu.miseEnCours = 0;
   sauver(); majSolde(); majBoutonAction();
   $('affiche-mult').classList.add('gagne');
-  $('message-vol').textContent = 'Encaissé : +' + res.gain + ' €';
+  $('message-vol').textContent = 'Encaissé : +' + eur(res.gain) + ' € (x' + etatJeu.encaisseA.toFixed(2) + ')';
 }
 
 // --- Mise auto ---
@@ -344,7 +357,7 @@ function boucleJeu(maintenant) {
       terminerVol(maintenant);
     } else {
       $('affiche-mult').textContent = 'x' + m.toFixed(2);
-      if (etatJeu.miseEnCours > 0) $('btn-action').textContent = 'ENCAISSER ' + Math.round(etatJeu.miseEnCours * m) + ' €';
+      if (etatJeu.miseEnCours > 0) $('btn-action').textContent = 'ENCAISSER ' + eur(etatJeu.miseEnCours * m) + ' €';
       const auto = parseFloat($('champ-auto').value);
       if (etatJeu.miseEnCours > 0 && !Number.isNaN(auto) && auto > 1 && m >= auto) encaisserMaintenant(maintenant);
       if (etatJeu.encaisseA === null) $('message-vol').textContent = '';
@@ -400,10 +413,10 @@ function dessinerStats() {
   const signe = leBilan > 0 ? '+' : '';
   const classeBilan = leBilan > 0 ? 'positif' : leBilan < 0 ? 'negatif' : '';
   $('resume-stats').innerHTML =
-    carte(signe + leBilan + ' €', 'bilan (gagné - misé)', classeBilan) +
-    carte(s.totalDepose + ' €', 'total ajouté') +
-    carte(s.nbParties, 'parties jouées') + carte(s.totalMise + ' €', 'total misé') +
-    carte(s.totalGagne + ' €', 'total gagné') + carte(s.plusGrosGain + ' €', 'plus gros gain');
+    carte(signe + eur(leBilan) + ' €', 'bilan (gagné - misé)', classeBilan) +
+    carte(eur(s.totalDepose) + ' €', 'total ajouté') +
+    carte(s.nbParties, 'parties jouées') + carte(eur(s.totalMise) + ' €', 'total misé') +
+    carte(eur(s.totalGagne) + ' €', 'total gagné') + carte(eur(s.plusGrosGain) + ' €', 'plus gros gain');
 
   if (serie.length < 2) {
     ctx.fillStyle = '#9BA4B4';
@@ -455,7 +468,7 @@ function dessinerStats() {
   ctx.beginPath(); ctx.arc(dx, dy, 4, 0, Math.PI * 2); ctx.fillStyle = couleur; ctx.fill();
   ctx.textAlign = 'center'; ctx.fillStyle = '#EAEAEA'; ctx.font = 'bold 13px -apple-system, sans-serif';
   const valFin = serie[serie.length - 1];
-  ctx.fillText((vueStats === 'bilan' && valFin > 0 ? '+' : '') + valFin + ' €', Math.min(dx, larg - 40), Math.max(14, dy - 10));
+  ctx.fillText((vueStats === 'bilan' && valFin > 0 ? '+' : '') + eur(valFin) + ' €', Math.min(dx, larg - 40), Math.max(14, dy - 10));
 
   // libellé axe X
   ctx.fillStyle = '#9BA4B4'; ctx.font = '11px -apple-system, sans-serif';

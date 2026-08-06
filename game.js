@@ -25,6 +25,13 @@
   const DEPOT_MAX = 100000;
   const MAX_CRASHS = 20;
 
+  // Mêmes probabilités que l'Aviator de Spribe : RTP 97 % (avantage maison 3 %).
+  // crash = 0.97 / (1 - r) donne P(atteindre m) = 0.97 / m, donc ~48,5 % de chances
+  // d'atteindre x2, 9,7 % d'atteindre x10, et 3 % des manches (r < 0.03) crashent
+  // instantanément à x1.00, soit environ 1 manche sur 33.
+  const RTP = 0.97;
+  const MULT_MAX = 1000000;
+
   const DONNEES_DEFAUT = Object.freeze({
     version: VERSION,
     solde: SOLDE_DEPART,
@@ -40,14 +47,25 @@
     return JSON.parse(JSON.stringify(DONNEES_DEFAUT));
   }
 
+  // L'argent se compte au centime. Tout calcul passe par ici pour éviter les
+  // dérives de virgule flottante (0.1 + 0.2 = 0.30000000000000004).
+  function arrondi2(x) {
+    return Math.round((x + Number.EPSILON) * 100) / 100;
+  }
+
+  // Un montant valide : un nombre fini, positif, avec au plus 2 décimales.
+  function montantValide(x) {
+    return Number.isFinite(x) && x > 0 && arrondi2(x) === x;
+  }
+
   function avionParId(id) {
     return AVIONS.find(a => a.id === id) || AVIONS[0];
   }
 
   function tirerCrash(rnd, minMult) {
     const r = (rnd || Math.random)();
-    const brut = 0.99 / (1 - r);
-    const crash = Math.max(1.00, Math.min(1000, brut));
+    const brut = RTP / (1 - r);
+    const crash = Math.max(1.00, Math.min(MULT_MAX, brut));
     return Math.max(minMult || 1, Math.floor(crash * 100) / 100);
   }
 
@@ -62,7 +80,7 @@
     // sauvegarde absente, illisible ou d'une version antérieure : on repart de zéro
     if (!lu || typeof lu !== 'object' || lu.version !== VERSION) return defaut;
     const d = defaut;
-    if (Number.isFinite(lu.solde) && lu.solde >= 0) d.solde = Math.floor(lu.solde);
+    if (Number.isFinite(lu.solde) && lu.solde >= 0) d.solde = arrondi2(lu.solde);
     if (Array.isArray(lu.avionsPossedes)) {
       const possedes = lu.avionsPossedes.filter(id => AVIONS.some(a => a.id === id));
       if (!possedes.includes(AVIONS[0].id)) possedes.unshift(AVIONS[0].id);
@@ -85,19 +103,19 @@
   }
 
   function placerMise(donnees, montant) {
-    if (!Number.isInteger(montant)) return { ok: false, erreur: 'La mise doit être un nombre entier.' };
+    if (!montantValide(montant)) return { ok: false, erreur: 'Montant invalide (2 décimales maximum).' };
     if (montant < MISE_MIN) return { ok: false, erreur: 'Mise minimum : ' + MISE_MIN + ' €.' };
     if (montant > donnees.solde) return { ok: false, erreur: 'Solde insuffisant.' };
-    donnees.solde -= montant;
-    donnees.stats.totalMise += montant;
+    donnees.solde = arrondi2(donnees.solde - montant);
+    donnees.stats.totalMise = arrondi2(donnees.stats.totalMise + montant);
     return { ok: true };
   }
 
   function deposer(donnees, montant) {
-    if (!Number.isInteger(montant) || montant < 1) return { ok: false, erreur: 'Montant invalide (minimum 1 €).' };
+    if (!montantValide(montant) || montant < 1) return { ok: false, erreur: 'Montant invalide (minimum 1 €).' };
     if (montant > DEPOT_MAX) return { ok: false, erreur: 'Maximum ' + DEPOT_MAX + ' € par dépôt.' };
-    donnees.solde += montant;
-    donnees.stats.totalDepose += montant;
+    donnees.solde = arrondi2(donnees.solde + montant);
+    donnees.stats.totalDepose = arrondi2(donnees.stats.totalDepose + montant);
     return { ok: true };
   }
 
@@ -109,8 +127,8 @@
     const avion = AVIONS.find(a => a.id === id);
     if (!avion) return { ok: false, erreur: 'Avion inconnu.' };
     if (possede(donnees, id)) return { ok: false, erreur: 'Avion déjà débloqué.' };
-    if (avion.prix > donnees.solde) return { ok: false, erreur: 'Il te manque ' + (avion.prix - donnees.solde) + ' €.' };
-    donnees.solde -= avion.prix;
+    if (avion.prix > donnees.solde) return { ok: false, erreur: 'Il te manque ' + arrondi2(avion.prix - donnees.solde) + ' €.' };
+    donnees.solde = arrondi2(donnees.solde - avion.prix);
     donnees.avionsPossedes.push(id);
     return { ok: true };
   }
@@ -124,9 +142,9 @@
   function resoudreManche(donnees, manche) {
     let gain = 0;
     if (manche.encaisseA !== null && manche.encaisseA !== undefined) {
-      gain = Math.round(manche.mise * manche.encaisseA);
-      donnees.solde += gain;
-      donnees.stats.totalGagne += gain;
+      gain = arrondi2(manche.mise * manche.encaisseA);
+      donnees.solde = arrondi2(donnees.solde + gain);
+      donnees.stats.totalGagne = arrondi2(donnees.stats.totalGagne + gain);
       if (gain > donnees.stats.plusGrosGain) donnees.stats.plusGrosGain = gain;
     }
     donnees.stats.nbParties += 1;
@@ -143,7 +161,7 @@
   }
 
   function bilan(donnees) {
-    return donnees.stats.totalGagne - donnees.stats.totalMise;
+    return arrondi2(donnees.stats.totalGagne - donnees.stats.totalMise);
   }
 
   // Repart d'une partie vierge : argent, historiques, stats et avions débloqués.
@@ -156,10 +174,10 @@
   }
 
   const api = {
-    AVIONS, DONNEES_DEFAUT, VERSION, MISE_MIN, SOLDE_DEPART, DEPOT_MAX,
+    AVIONS, DONNEES_DEFAUT, VERSION, MISE_MIN, SOLDE_DEPART, DEPOT_MAX, RTP, MULT_MAX,
     tirerCrash, chargerDonnees, sauverDonnees, avionParId,
     placerMise, resoudreManche, enregistrerCrash, deposer, bilan,
-    possede, acheterAvion, choisirAvion, reinitialiser,
+    possede, acheterAvion, choisirAvion, reinitialiser, arrondi2,
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

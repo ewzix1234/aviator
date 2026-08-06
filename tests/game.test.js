@@ -5,17 +5,40 @@ const G = require('../game.js');
 const mem = (init) => ({ d: init, getItem(k){ return this.d; }, setItem(k, v){ this.d = v; } });
 const neuf = () => G.chargerDonnees(mem(null));
 
-// --- tirerCrash ---
-assert.strictEqual(G.tirerCrash(() => 0), 1.00, 'r=0 -> x1.00');
-assert.strictEqual(G.tirerCrash(() => 0.505), 2.00, 'r=0.505 -> x2.00');
-assert.strictEqual(G.tirerCrash(() => 0.9999999), 1000, 'plafond x1000');
-let sous2 = 0;
-for (let i = 0; i < 10000; i++) if (G.tirerCrash() < 2) sous2++;
-assert.ok(sous2 > 4000 && sous2 < 6000, 'mediane ~x2, obtenu ' + sous2);
+// --- tirerCrash : memes probabilites que l'Aviator original (RTP 97 %) ---
+assert.strictEqual(G.RTP, 0.97, 'RTP 97 % comme Spribe Aviator');
+assert.strictEqual(G.tirerCrash(() => 0), 1.00, 'r=0 -> crash instantane x1.00');
+assert.strictEqual(G.tirerCrash(() => 0.02), 1.00, 'r < 0.03 -> crash instantane');
+assert.strictEqual(G.tirerCrash(() => 0.5), 1.94, 'r=0.5 -> x1.94 (mediane)');
+assert.strictEqual(G.tirerCrash(() => 0.515), 2.00, 'r=0.515 -> x2.00');
+assert.strictEqual(G.tirerCrash(() => 0.99999999), G.MULT_MAX, 'plafond x1000000');
+
+// Monte-Carlo : P(atteindre m) doit valoir 0.97 / m, et le RTP 97 % a chaque palier
+const N = 200000;
+const tirages = new Array(N);
+for (let i = 0; i < N; i++) tirages[i] = G.tirerCrash();
+// tolerance = 4 ecarts-types de la proportion mesuree (bruit d'echantillonnage)
+const tolerance = (p) => 4 * Math.sqrt(p * (1 - p) / N);
+for (const m of [1.5, 2, 5, 10, 50]) {
+  const attendu = 0.97 / m;
+  const p = tirages.filter(c => c >= m).length / N;
+  assert.ok(Math.abs(p - attendu) < tolerance(attendu),
+    'P(atteindre x' + m + ') = ' + p.toFixed(5) + ', attendu ' + attendu.toFixed(5));
+  // le RTP vaut m x P(atteindre m) : encaisser a x2 ou a x50 rapporte pareil sur la duree
+  assert.ok(Math.abs(m * p - 0.97) < m * tolerance(attendu),
+    'RTP a x' + m + ' = ' + (m * p).toFixed(3) + ', attendu 0.97');
+}
+// Crashs instantanes : l'avantage maison brut vaut 3 % (tirages sous x1.00), mais le
+// multiplicateur est tronque a 2 decimales comme dans le jeu original, donc tout ce qui
+// sort sous x1.01 s'affiche x1.00 : P = 1 - 0.97/1.01 = 3.96 %, soit ~1 manche sur 25.
+const instantanesAttendu = 1 - 0.97 / 1.01;
+const instantanes = tirages.filter(c => c === 1).length / N;
+assert.ok(Math.abs(instantanes - instantanesAttendu) < tolerance(instantanesAttendu),
+  'crashs instantanes : ' + (instantanes * 100).toFixed(2) + ' %, attendu ' + (instantanesAttendu * 100).toFixed(2) + ' %');
 
 // bonus caché : minMult impose un plancher
 assert.strictEqual(G.tirerCrash(() => 0, 5), 5, 'minMult 5 releve un x1.00 a x5');
-assert.strictEqual(G.tirerCrash(() => 0.9, 5), 9.9, 'minMult n abaisse jamais un gros tirage');
+assert.strictEqual(G.tirerCrash(() => 0.9, 5), 9.7, 'minMult n abaisse jamais un gros tirage');
 for (let i = 0; i < 2000; i++) assert.ok(G.tirerCrash(null, 5) >= 5, 'jamais sous x5 avec minMult');
 
 // --- boutique : catalogue ---
@@ -61,7 +84,10 @@ assert.strictEqual(r.ok, true);
 assert.strictEqual(d.solde, 50);
 assert.strictEqual(d.stats.totalDepose, 50);
 assert.strictEqual(G.deposer(d, 0).ok, false, 'depot 0 refuse');
-assert.strictEqual(G.deposer(d, 2.5).ok, false, 'depot non entier refuse');
+assert.strictEqual(G.deposer(d, 0.5).ok, false, 'depot sous 1 € refuse');
+assert.strictEqual(G.deposer(d, 2.005).ok, false, 'depot a plus de 2 decimales refuse');
+assert.strictEqual(G.deposer(d, 2.5).ok, true, 'depot avec centimes accepte');
+assert.strictEqual(d.solde, 52.5, 'centimes credites');
 assert.strictEqual(G.deposer(d, 999999).ok, false, 'depot > max refuse');
 
 // --- acheterAvion ---
@@ -91,11 +117,25 @@ assert.strictEqual(d.solde, 900, 'mise deduite');
 assert.strictEqual(d.stats.totalMise, 100);
 assert.strictEqual(G.placerMise(d, 5000).ok, false, 'solde insuffisant refuse');
 assert.strictEqual(G.placerMise(d, 0).ok, false, 'mise < 1 refusee');
-assert.strictEqual(G.placerMise(d, 10.5).ok, false, 'mise non entiere refusee');
+assert.strictEqual(G.placerMise(d, 10.005).ok, false, 'mise a plus de 2 decimales refusee');
+assert.strictEqual(G.placerMise(d, 10.5).ok, true, 'mise avec centimes acceptee');
+assert.strictEqual(d.solde, 889.5, 'centimes deduits');
+G.resoudreManche(d, { mise: 10.5, crash: 5, encaisseA: 2 }); // rend 21 €
+assert.strictEqual(d.solde, 910.5, 'gain avec centimes credite');
 
-// --- resoudreManche : gain ---
-let res = G.resoudreManche(d, { mise: 100, crash: 5.00, encaisseA: 2.5 });
-assert.strictEqual(res.gain, 250, 'gain = mise x mult arrondi');
+// --- resoudreManche : gain au centime pres ---
+d = neuf();
+G.deposer(d, 1000);
+G.placerMise(d, 10);
+let res = G.resoudreManche(d, { mise: 10, crash: 5, encaisseA: 1.225 });
+assert.strictEqual(res.gain, 12.25, '10 € encaisses a x1.225 rendent 12.25 €');
+assert.strictEqual(d.solde, 1002.25, 'solde au centime');
+
+d = neuf();
+G.deposer(d, 1000);
+G.placerMise(d, 100);
+res = G.resoudreManche(d, { mise: 100, crash: 5.00, encaisseA: 2.5 });
+assert.strictEqual(res.gain, 250, 'gain = mise x mult');
 assert.strictEqual(d.solde, 1150);
 assert.strictEqual(d.stats.plusGrosGain, 250);
 assert.strictEqual(d.stats.nbParties, 1);
@@ -109,6 +149,16 @@ res = G.resoudreManche(d, { mise: 150, crash: 1.24, encaisseA: null });
 assert.strictEqual(res.gain, 0);
 assert.strictEqual(d.solde, 1000);
 assert.deepStrictEqual(d.bilanHistorique, [150, 0], 'bilan retombe a 0');
+
+// pas de derive en virgule flottante sur une longue serie de centimes
+const dDerive = neuf();
+G.deposer(dDerive, 100);
+for (let i = 0; i < 300; i++) {
+  G.placerMise(dDerive, 1);
+  G.resoudreManche(dDerive, { mise: 1, crash: 5, encaisseA: 1.1 });
+}
+assert.strictEqual(dDerive.solde, G.arrondi2(dDerive.solde), 'solde toujours propre au centime');
+assert.strictEqual(dDerive.solde, 130, '100 € + 300 x (1.10 - 1.00) = 130 € exactement');
 
 // --- enregistrerCrash ---
 for (let i = 0; i < 25; i++) G.enregistrerCrash(d, 1.5 + i);

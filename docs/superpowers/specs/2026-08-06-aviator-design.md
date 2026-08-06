@@ -62,9 +62,18 @@ Le solde fictif est affiché en permanence en haut, partagé entre tous les écr
 
 ## Logique du jeu
 
-- **Tirage du crash** : distribution type Aviator, `crash = max(1.00, 0.99 / (1 - r))`
-  avec `r` uniforme [0,1) — médiane ≈ x2, beaucoup de petits crashs, rares gros x50+.
-  Plafond raisonnable (ex. x1000).
+- **Tirage du crash — mêmes probabilités que l'Aviator de Spribe** (calé le 2026-08-07) :
+  `crash = max(1.00, 0.97 / (1 - r))` avec `r` uniforme [0,1), tronqué à 2 décimales,
+  plafond x1 000 000. Cela donne exactement :
+  - **RTP 97 %** (avantage maison 3 %) : encaisser à x2 ou à x50 rapporte pareil sur la durée ;
+  - **P(atteindre m) = 0,97 / m** → 48,5 % à x2, 19,4 % à x5, 9,7 % à x10, 0,97 % à x100 ;
+  - **~3,96 % de crashs instantanés à x1.00** (1 sur 25) : les 3 % d'avantage maison,
+    plus la troncature qui ramène à x1.00 tout tirage sous x1.01 — comme dans l'original.
+  Vérifié par un test Monte-Carlo de 200 000 tirages avec tolérance à 4 écarts-types.
+- **Argent au centime** : gains = `arrondi2(mise × multiplicateur)`, mises et dépôts
+  acceptés avec 2 décimales (au-delà : refusés). Toute opération passe par `arrondi2()`
+  pour éviter les dérives de virgule flottante. Le multiplicateur reste à 2 décimales
+  comme dans le jeu original, donc 10 € encaissés à x1.22 rendent 12,20 €.
 - **Solde de départ** : 0 €. Bouton **＋ Ajouter** toujours visible dans l'en-tête :
   ouvre une fenêtre de dépôt façon Winamax (montants rapides 10/20/50/100/200/500 €
   + champ libre, plafond 100 000 € par dépôt). Le total déposé est suivi dans

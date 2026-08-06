@@ -44,7 +44,7 @@
     <div class="panneau-mise">
       <div class="ligne-mise">
         <label for="champ-mise">Mise</label>
-        <input id="champ-mise" type="number" inputmode="numeric" min="1" step="1" value="10">
+        <input id="champ-mise" type="number" inputmode="decimal" min="1" step="any" value="10">
         <div class="mises-rapides">
           <button data-mise="10">10</button><button data-mise="50">50</button>
           <button data-mise="100">100</button><button data-mise="max">MAX</button>
@@ -98,7 +98,7 @@
         <button data-depot="500">500 €</button>
       </div>
       <div class="ligne-depot">
-        <input id="champ-depot" type="number" inputmode="numeric" min="1" placeholder="Montant libre">
+        <input id="champ-depot" type="number" inputmode="decimal" min="1" step="any" placeholder="Montant libre">
         <button id="btn-valider-depot">Ajouter</button>
       </div>
       <div id="message-depot" class="message-erreur"></div>
