@@ -121,3 +121,26 @@ G.sauverDonnees(st, d);
 assert.strictEqual(JSON.parse(st.d).version, G.VERSION, 'version ecrite dans la sauvegarde');
 
 console.log('OK — tous les tests game.js passent');
+
+// --- reinitialiser ---
+d = neuf();
+G.deposer(d, 500);
+G.acheterAvion(d, 'avion2');
+G.placerMise(d, 50);
+G.resoudreManche(d, { mise: 50, crash: 3, encaisseA: 2 });
+G.enregistrerCrash(d, 3);
+const memeObjet = d;
+G.reinitialiser(d);
+assert.strictEqual(d, memeObjet, 'reinitialise en place (meme reference)');
+assert.strictEqual(d.solde, 0, 'solde remis a 0');
+assert.deepStrictEqual(d.avionsPossedes, ['avion1'], 'avions reverrouilles');
+assert.strictEqual(d.avion, 'avion1', 'avion par defaut reselectionne');
+assert.deepStrictEqual(d.capitalHistorique, [], 'historique capital vide');
+assert.deepStrictEqual(d.bilanHistorique, [], 'historique bilan vide');
+assert.deepStrictEqual(d.crashHistorique, [], 'historique crashs vide');
+assert.deepStrictEqual(d.stats, { totalMise: 0, totalGagne: 0, plusGrosGain: 0, nbParties: 0, totalDepose: 0 }, 'stats remises a zero');
+assert.strictEqual(d.version, G.VERSION, 'version conservee');
+// on peut rejouer normalement apres
+assert.strictEqual(G.deposer(d, 10).ok, true, 'depot possible apres remise a zero');
+
+console.log('OK — remise à zéro validée');

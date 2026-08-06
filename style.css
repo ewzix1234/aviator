@@ -142,6 +142,10 @@ body {
   font-size: 1rem; padding: 8px; text-decoration: underline;
 }
 
+.btn-danger { border-color: #5A2733; color: var(--rouge); margin-top: 4px; }
+.btn-danger-plein { background: var(--rouge); box-shadow: 0 6px 0 #922B21; }
+.btn-danger-plein:active { box-shadow: 0 3px 0 #922B21; }
+
 /* --- boutique --- */
 .message-boutique { color: var(--vert); min-height: 1.3em; text-align: center; font-weight: 600; }
 .message-boutique.erreur { color: var(--rouge); }

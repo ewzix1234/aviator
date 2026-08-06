@@ -146,11 +146,20 @@
     return donnees.stats.totalGagne - donnees.stats.totalMise;
   }
 
+  // Repart d'une partie vierge : argent, historiques, stats et avions débloqués.
+  // Modifie l'objet en place pour que les références existantes restent valides.
+  function reinitialiser(donnees) {
+    const vierge = neufDonnees();
+    for (const cle of Object.keys(donnees)) delete donnees[cle];
+    Object.assign(donnees, vierge);
+    return donnees;
+  }
+
   const api = {
     AVIONS, DONNEES_DEFAUT, VERSION, MISE_MIN, SOLDE_DEPART, DEPOT_MAX,
     tirerCrash, chargerDonnees, sauverDonnees, avionParId,
     placerMise, resoudreManche, enregistrerCrash, deposer, bilan,
-    possede, acheterAvion, choisirAvion,
+    possede, acheterAvion, choisirAvion, reinitialiser,
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

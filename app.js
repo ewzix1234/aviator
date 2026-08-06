@@ -169,31 +169,41 @@ function majBandeCrashs() {
   }).join('');
 }
 
+// Le bouton principal a trois visages :
+//   vol en cours avec une mise  -> ENCAISSER (le montant suit le multiplicateur)
+//   mise déjà placée            -> rappel, bouton inactif
+//   sinon                       -> MISER, à n'importe quel moment : pendant un vol,
+//                                  la mise est simplement gardée pour le vol suivant.
 function majBoutonAction() {
   const btn = $('btn-action');
-  btn.classList.toggle('mode-encaisser', etatJeu.phase === 'VOL' && etatJeu.miseEnCours > 0);
-  if (etatJeu.phase === 'VOL' && etatJeu.miseEnCours > 0) {
+  const enVolAvecMise = etatJeu.phase === 'VOL' && etatJeu.miseEnCours > 0;
+  btn.classList.toggle('mode-encaisser', enVolAvecMise);
+  if (enVolAvecMise) {
+    // le montant exact est rafraîchi à chaque image par boucleJeu
+    btn.textContent = 'ENCAISSER ' + etatJeu.miseEnCours + ' €';
     btn.disabled = false;
-  } else if (etatJeu.phase === 'ATTENTE') {
-    btn.textContent = etatJeu.miseProchaine > 0 ? 'MISE PLACÉE : ' + etatJeu.miseProchaine : 'MISER';
-    btn.disabled = etatJeu.miseProchaine > 0;
-  } else {
-    btn.textContent = 'MISER';
+  } else if (etatJeu.miseProchaine > 0) {
+    btn.textContent = etatJeu.phase === 'ATTENTE'
+      ? 'MISE PLACÉE : ' + etatJeu.miseProchaine + ' €'
+      : 'MISE PLACÉE POUR LE PROCHAIN VOL';
     btn.disabled = true;
+  } else {
+    btn.textContent = etatJeu.phase === 'ATTENTE' ? 'MISER' : 'MISER (PROCHAIN VOL)';
+    btn.disabled = false;
   }
-  $('btn-retour-salon').disabled = (etatJeu.phase === 'VOL' && etatJeu.miseEnCours > 0);
+  $('btn-retour-salon').disabled = enVolAvecMise;
 }
 
 $('btn-action').addEventListener('click', () => {
   $('message-erreur').textContent = '';
-  if (etatJeu.phase === 'ATTENTE') {
+  if (etatJeu.phase === 'VOL' && etatJeu.miseEnCours > 0) {
+    encaisserMaintenant(performance.now());
+  } else if (etatJeu.miseProchaine === 0) {
     const montant = parseInt($('champ-mise').value, 10);
     const r = Game.placerMise(donnees, Number.isNaN(montant) ? 0 : montant);
     if (!r.ok) { $('message-erreur').textContent = r.erreur; return; }
     etatJeu.miseProchaine = montant;
     sauver(); majSolde();
-  } else if (etatJeu.phase === 'VOL' && etatJeu.miseEnCours > 0) {
-    encaisserMaintenant(performance.now());
   }
   majBoutonAction();
 });
@@ -243,7 +253,8 @@ function placerMiseAuto() {
 function demarrerAttente(maintenant) {
   etatJeu.phase = 'ATTENTE';
   etatJeu.finAttente = maintenant + DUREE_ATTENTE * 1000;
-  etatJeu.miseProchaine = 0;
+  // miseProchaine n'est pas remise à zéro ici : elle peut avoir été placée
+  // pendant le vol précédent, et l'argent est déjà débité. Seul demarrerVol la consomme.
   etatJeu.encaisseA = null;
   $('affiche-mult').classList.remove('crash', 'gagne');
   placerMiseAuto();
@@ -450,6 +461,23 @@ function dessinerStats() {
   ctx.fillStyle = '#9BA4B4'; ctx.font = '11px -apple-system, sans-serif';
   ctx.fillText((serie.length - 1) + ' dernière(s) partie(s)', larg / 2, haut - 8);
 }
+
+// --- Remise à zéro ---
+$('btn-reinit').addEventListener('click', () => $('voile-reinit').classList.remove('cache'));
+$('btn-annuler-reinit').addEventListener('click', () => $('voile-reinit').classList.add('cache'));
+$('btn-confirmer-reinit').addEventListener('click', () => {
+  Game.reinitialiser(donnees);
+  sauver();
+  // la manche en cours perd son enjeu : on repart proprement d'une phase d'attente
+  etatJeu.miseEnCours = 0;
+  etatJeu.miseProchaine = 0;
+  autoMiseActive = false;
+  majBoutonAutoMise();
+  demarrerAttente(performance.now());
+  majSolde(); majAvion(); dessinerStats();
+  $('voile-reinit').classList.add('cache');
+  $('message-erreur').textContent = '';
+});
 
 function carte(valeur, libelle, classe) {
   return '<div class="carte-stat"><div class="valeur ' + (classe || '') + '">' + valeur + '</div><div class="libelle">' + libelle + '</div></div>';

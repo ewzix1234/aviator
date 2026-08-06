@@ -82,6 +82,7 @@
     </div>
     <canvas id="canvas-stats"></canvas>
     <div id="resume-stats" class="resume-stats"></div>
+    <button id="btn-reinit" class="btn-secondaire btn-danger">♻️ Tout remettre à zéro</button>
   </section>
 
   <!-- FENÊTRE DE DÉPÔT -->
@@ -102,6 +103,20 @@
       </div>
       <div id="message-depot" class="message-erreur"></div>
       <button id="btn-fermer-depot" class="btn-fermer">Fermer</button>
+    </div>
+  </div>
+
+  <!-- CONFIRMATION DE REMISE À ZÉRO -->
+  <div id="voile-reinit" class="voile cache">
+    <div class="modale">
+      <h3>♻️ Tout remettre à zéro ?</h3>
+      <p class="note-depot">
+        Tu repars d'une partie vierge : <strong>0 €</strong>, historique et statistiques
+        effacés, et tous les avions à racheter (sauf le premier).
+        Tu pourras évidemment rejouer et tout redébloquer.
+      </p>
+      <button id="btn-confirmer-reinit" class="btn-principal btn-danger-plein">Oui, recommencer</button>
+      <button id="btn-annuler-reinit" class="btn-fermer">Annuler</button>
     </div>
   </div>
 

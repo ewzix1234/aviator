@@ -29,8 +29,18 @@ Le solde fictif est affiché en permanence en haut, partagé entre tous les écr
   sur un canvas animé (requestAnimationFrame, ~60 fps).
 - Machine à états : `ATTENTE` (mise ouverte, compte à rebours ~5 s) → `VOL`
   (multiplicateur monte) → `CRASH` (avion s'envole/explose, résultats) → retour `ATTENTE`.
-- **Mise** : champ montant + boutons rapides (10/50/100/max). Mise placée pendant `ATTENTE`.
-- **Encaisser** : bouton pendant `VOL` → gain = mise × multiplicateur courant. Sinon mise perdue au crash.
+- **Un seul bouton principal**, à trois états (revu le 2026-08-07) :
+  - vol en cours avec une mise → **ENCAISSER xxx €** (vert, montant qui suit le multiplicateur) ;
+  - mise déjà placée → rappel, bouton inactif ;
+  - sinon → **MISER**, cliquable **à tout moment**. Pendant un vol, il devient
+    « MISER (PROCHAIN VOL) » et garde la mise pour la manche suivante — on n'est donc
+    jamais bloqué à attendre la fenêtre de 5 s.
+  `miseProchaine` n'est jamais remise à zéro par `demarrerAttente` (l'argent est déjà
+  débité) : seule `demarrerVol` la consomme.
+- **Mise** : champ montant + boutons rapides (10/50/100/max).
+- **Remise à zéro** : bouton « ♻️ Tout remettre à zéro » en bas de l'écran stats, avec
+  fenêtre de confirmation. `Game.reinitialiser()` remet argent, historiques, stats et
+  avions débloqués à l'état d'une partie neuve ; on peut rejouer immédiatement après.
 - **Auto-cashout** : champ optionnel « encaisser à x__ » qui encaisse automatiquement.
 - **Historique** : bandeau des derniers multiplicateurs de crash, coloré
   (rouge < x2, vert ≥ x2, doré ≥ x10).
