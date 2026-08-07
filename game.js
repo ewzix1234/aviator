@@ -7,17 +7,20 @@
   // `nom` = le modèle seul, sans la compagnie.
   // `fond` (optionnel) : décor animé dessiné derrière la courbe de vol. Purement
   // cosmétique — aucun avion ne modifie les probabilités de crash.
+  // Prix divisés par 5 par rapport au barème d'origine (25…1000 €) : les écarts
+  // entre avions sont conservés, mais la collection reste atteignable avec des
+  // recharges de 10 €.
   const AVIONS = [
     { id: 'avion1',  nom: 'A220',       img: 'img/avion1.png',  prix: 0 },
-    { id: 'avion2',  nom: '737-800',    img: 'img/avion2.png',  prix: 25 },
-    { id: 'avion3',  nom: 'A320',       img: 'img/avion3.png',  prix: 50 },
-    { id: 'avion4',  nom: '787-9',      img: 'img/avion4.png',  prix: 100 },
-    { id: 'avion5',  nom: '777-300ER',  img: 'img/avion5.png',  prix: 175 },
-    { id: 'avion6',  nom: '747-8F',     img: 'img/avion6.png',  prix: 275 },
-    { id: 'avion7',  nom: 'A380',       img: 'img/avion7.png',  prix: 400 },
-    { id: 'avion8',  nom: 'An-225',     img: 'img/avion8.png',  prix: 600 },
-    { id: 'avion9',  nom: 'E-3 Sentry', img: 'img/avion9.png',  prix: 800 },
-    { id: 'avion10', nom: 'B-2 Spirit', img: 'img/avion10.png', prix: 1000, fond: 'furtif' },
+    { id: 'avion2',  nom: '737-800',    img: 'img/avion2.png',  prix: 5 },
+    { id: 'avion3',  nom: 'A320',       img: 'img/avion3.png',  prix: 10 },
+    { id: 'avion4',  nom: '787-9',      img: 'img/avion4.png',  prix: 20 },
+    { id: 'avion5',  nom: '777-300ER',  img: 'img/avion5.png',  prix: 35 },
+    { id: 'avion6',  nom: '747-8F',     img: 'img/avion6.png',  prix: 55 },
+    { id: 'avion7',  nom: 'A380',       img: 'img/avion7.png',  prix: 80 },
+    { id: 'avion8',  nom: 'An-225',     img: 'img/avion8.png',  prix: 120 },
+    { id: 'avion9',  nom: 'E-3 Sentry', img: 'img/avion9.png',  prix: 160 },
+    { id: 'avion10', nom: 'B-2 Spirit', img: 'img/avion10.png', prix: 200, fond: 'furtif' },
   ];
 
   const VERSION = 3;              // incrémenter remet les sauvegardes à zéro
