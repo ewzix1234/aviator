@@ -4,25 +4,26 @@
 
   // Boutique : l'ordre = l'ordre d'affichage et de prix croissant.
   // `img` pointe vers img/avionN.png (déposer l'image, elle apparaît).
-  // `minMult` (optionnel) impose un multiplicateur de crash minimum : bonus
-  // caché du dernier avion, jamais annoncé dans l'interface.
+  // `nom` = le modèle seul, sans la compagnie.
+  // `fond` (optionnel) : décor animé dessiné derrière la courbe de vol. Purement
+  // cosmétique — aucun avion ne modifie les probabilités de crash.
   const AVIONS = [
-    { id: 'avion1',  nom: 'Air France A220',      img: 'img/avion1.png',  prix: 0 },
-    { id: 'avion2',  nom: 'Ryanair 737',          img: 'img/avion2.png',  prix: 25 },
-    { id: 'avion3',  nom: 'easyJet A320',         img: 'img/avion3.png',  prix: 50 },
-    { id: 'avion4',  nom: 'Virgin Atlantic 787',  img: 'img/avion4.png',  prix: 100 },
-    { id: 'avion5',  nom: 'United 777',           img: 'img/avion5.png',  prix: 175 },
-    { id: 'avion6',  nom: 'UPS 747 Cargo',        img: 'img/avion6.png',  prix: 275 },
-    { id: 'avion7',  nom: 'Singapore A380',       img: 'img/avion7.png',  prix: 400 },
-    { id: 'avion8',  nom: 'Antonov An-225',       img: 'img/avion8.png',  prix: 600 },
-    { id: 'avion9',  nom: 'E-3 Sentry AWACS',     img: 'img/avion9.png',  prix: 800 },
-    { id: 'avion10', nom: 'B-2 Spirit',           img: 'img/avion10.png', prix: 1000, minMult: 5 },
+    { id: 'avion1',  nom: 'A220',       img: 'img/avion1.png',  prix: 0 },
+    { id: 'avion2',  nom: '737-800',    img: 'img/avion2.png',  prix: 25 },
+    { id: 'avion3',  nom: 'A320',       img: 'img/avion3.png',  prix: 50 },
+    { id: 'avion4',  nom: '787-9',      img: 'img/avion4.png',  prix: 100 },
+    { id: 'avion5',  nom: '777-300ER',  img: 'img/avion5.png',  prix: 175 },
+    { id: 'avion6',  nom: '747-8F',     img: 'img/avion6.png',  prix: 275 },
+    { id: 'avion7',  nom: 'A380',       img: 'img/avion7.png',  prix: 400 },
+    { id: 'avion8',  nom: 'An-225',     img: 'img/avion8.png',  prix: 600 },
+    { id: 'avion9',  nom: 'E-3 Sentry', img: 'img/avion9.png',  prix: 800 },
+    { id: 'avion10', nom: 'B-2 Spirit', img: 'img/avion10.png', prix: 1000, fond: 'furtif' },
   ];
 
   const VERSION = 3;              // incrémenter remet les sauvegardes à zéro
   const MISE_MIN = 1;
   const SOLDE_DEPART = 0;
-  const DEPOT_MAX = 100000;
+  const DEPOT_PAS = 10;           // on ajoute l'argent 10 € par 10 €
   const MAX_CRASHS = 20;
 
   // Mêmes probabilités que l'Aviator de Spribe : RTP 97 % (avantage maison 3 %).
@@ -62,11 +63,11 @@
     return AVIONS.find(a => a.id === id) || AVIONS[0];
   }
 
-  function tirerCrash(rnd, minMult) {
+  function tirerCrash(rnd) {
     const r = (rnd || Math.random)();
     const brut = RTP / (1 - r);
     const crash = Math.max(1.00, Math.min(MULT_MAX, brut));
-    return Math.max(minMult || 1, Math.floor(crash * 100) / 100);
+    return Math.floor(crash * 100) / 100;
   }
 
   function chargerDonnees(storage) {
@@ -111,12 +112,23 @@
     return { ok: true };
   }
 
+  // Recharge volontairement avare : 10 € à la fois, et seulement une fois ruiné.
+  // Impossible donc de cumuler des dépôts pour s'offrir les gros avions d'entrée :
+  // il faut les gagner en jouant.
   function deposer(donnees, montant) {
-    if (!montantValide(montant) || montant < 1) return { ok: false, erreur: 'Montant invalide (minimum 1 €).' };
-    if (montant > DEPOT_MAX) return { ok: false, erreur: 'Maximum ' + DEPOT_MAX + ' € par dépôt.' };
+    if (donnees.solde > 0) {
+      return { ok: false, erreur: 'Ajout possible uniquement quand ton solde est à 0 €.' };
+    }
+    if (montant !== DEPOT_PAS) {
+      return { ok: false, erreur: 'Tu peux ajouter ' + DEPOT_PAS + ' € à la fois.' };
+    }
     donnees.solde = arrondi2(donnees.solde + montant);
     donnees.stats.totalDepose = arrondi2(donnees.stats.totalDepose + montant);
     return { ok: true };
+  }
+
+  function peutDeposer(donnees) {
+    return donnees.solde <= 0;
   }
 
   function possede(donnees, id) {
@@ -174,9 +186,9 @@
   }
 
   const api = {
-    AVIONS, DONNEES_DEFAUT, VERSION, MISE_MIN, SOLDE_DEPART, DEPOT_MAX, RTP, MULT_MAX,
+    AVIONS, DONNEES_DEFAUT, VERSION, MISE_MIN, SOLDE_DEPART, DEPOT_PAS, RTP, MULT_MAX,
     tirerCrash, chargerDonnees, sauverDonnees, avionParId,
-    placerMise, resoudreManche, enregistrerCrash, deposer, bilan,
+    placerMise, resoudreManche, enregistrerCrash, deposer, peutDeposer, bilan,
     possede, acheterAvion, choisirAvion, reinitialiser, arrondi2,
   };
 

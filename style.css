@@ -29,10 +29,13 @@ body {
   border-radius: 8px; padding: 8px 14px; font-size: 0.95rem; margin-left: 12px;
 }
 .btn-retour:disabled { opacity: 0.35; }
+/* l'ajout d'argent n'est ouvert qu'à 0 € : le bouton s'éteint le reste du temps */
+.btn-deposer:disabled { background: #2C3E66; color: var(--texte-faible); }
 
 .ecran { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 20px 16px; gap: 18px; overflow-y: auto; }
 
-.titre { font-size: 2.6rem; letter-spacing: 4px; color: var(--accent); margin-top: 8vh; }
+.titre { font-size: 2.6rem; letter-spacing: 4px; color: var(--texte); margin-top: 8vh; }
+.titre .deux { color: var(--accent); }
 .sous-titre { color: var(--texte-faible); }
 .carrousel { display: flex; align-items: center; gap: 8px; width: 100%; justify-content: center; }
 .fleche {
@@ -65,6 +68,12 @@ body {
 
 .zone-vol { position: relative; width: 100%; }
 #canvas-vol { width: 100%; height: 42vh; display: block; background: var(--panneau); border-radius: 14px; }
+/* décor du B-2 : la zone de vol vire à l'écran radar (purement cosmétique) */
+.fond-furtif #canvas-vol {
+  background: #0A1410;
+  box-shadow: inset 0 0 60px rgba(46, 204, 113, 0.10), 0 0 0 1px rgba(46, 204, 113, 0.22);
+}
+.fond-furtif .mult { text-shadow: 0 0 18px rgba(46, 204, 113, 0.45); }
 .mult {
   position: absolute; top: 12px; left: 0; right: 0; text-align: center;
   font-size: 2.6rem; font-weight: 800; pointer-events: none;
@@ -122,21 +131,10 @@ body {
 }
 .modale h3 { text-align: center; }
 .note-depot { color: var(--texte-faible); text-align: center; font-size: 0.9rem; }
-.grille-depot { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-.grille-depot button {
-  background: var(--panneau); color: var(--texte); border: 2px solid #2C3E66;
-  border-radius: 12px; padding: 16px 0; font-size: 1.1rem; font-weight: 800;
+#btn-depot-10 {
+  width: 100%; background: var(--vert); color: #08331C; box-shadow: 0 6px 0 #1E8449;
 }
-.grille-depot button:active { background: var(--vert); color: #08331C; border-color: var(--vert); }
-.ligne-depot { display: flex; gap: 10px; }
-.ligne-depot input {
-  flex: 1; background: var(--panneau); border: 1px solid #2C3E66; color: var(--texte);
-  border-radius: 10px; padding: 12px; font-size: 1.05rem; text-align: center;
-}
-.ligne-depot button {
-  background: var(--vert); color: #08331C; border: none; border-radius: 10px;
-  padding: 12px 18px; font-weight: 800; font-size: 1rem;
-}
+#btn-depot-10:active { box-shadow: 0 3px 0 #1E8449; }
 .btn-fermer {
   background: none; border: none; color: var(--texte-faible);
   font-size: 1rem; padding: 8px; text-decoration: underline;
@@ -153,25 +151,34 @@ body {
   display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
   width: 100%; max-width: 520px;
 }
+/* Toutes les cartes suivent la même trame : image / nom / prix / bouton sur quatre
+   rangées de hauteur identique d'une carte à l'autre, donc avions et boutons
+   restent alignés quelle que soit la longueur du nom. */
 .carte-avion {
   background: var(--panneau); border: 2px solid #2C3E66; border-radius: 16px;
-  padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px;
-  position: relative; overflow: hidden;
+  padding: 12px; display: grid; grid-template-rows: auto 1.4em 1.3em auto;
+  align-items: center; gap: 8px; position: relative; overflow: hidden;
 }
 .carte-avion.choisi { border-color: var(--vert); }
-.carte-avion .vignette { position: relative; width: 100%; }
-.carte-avion img { width: 100%; height: auto; display: block; }
+.carte-avion .vignette {
+  position: relative; width: 100%; aspect-ratio: 5 / 2;
+  display: flex; align-items: center; justify-content: center;
+}
+.carte-avion img { max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; }
 .carte-avion.verrouille img { filter: grayscale(1) brightness(0.4); }
 .carte-avion.verrouille .vignette::after {
   content: '🔒'; position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
   font-size: 2.2rem; text-shadow: 0 2px 8px rgba(0,0,0,0.8);
 }
-.carte-avion .nom { font-weight: 700; font-size: 0.95rem; text-align: center; }
-.carte-avion .prix { color: var(--or); font-weight: 800; }
+.carte-avion .nom {
+  font-weight: 700; font-size: 0.95rem; text-align: center;
+  align-self: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.carte-avion .prix { color: var(--or); font-weight: 800; text-align: center; align-self: center; }
 .carte-avion button {
   width: 100%; border: none; border-radius: 10px; padding: 10px 0;
-  font-size: 0.95rem; font-weight: 800;
+  font-size: 0.95rem; font-weight: 800; align-self: end;
   background: var(--accent); color: white;
 }
 .carte-avion button.secondaire { background: #2C3E66; color: var(--texte); }

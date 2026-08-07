@@ -27,28 +27,22 @@ function lireMontant(champ) {
 
 function majSolde() {
   $('affiche-solde').textContent = eur(donnees.solde);
+  // Le bouton d'ajout ne s'allume qu'une fois ruiné : recharge de 10 €, pas avant.
+  $('btn-deposer').disabled = !Game.peutDeposer(donnees);
 }
 
-function deposerMontant(montant) {
-  const r = Game.deposer(donnees, montant);
+$('btn-deposer').addEventListener('click', () => {
+  $('message-depot').textContent = '';
+  $('voile-depot').classList.remove('cache');
+});
+$('btn-fermer-depot').addEventListener('click', () => $('voile-depot').classList.add('cache'));
+$('btn-depot-10').addEventListener('click', () => {
+  const r = Game.deposer(donnees, Game.DEPOT_PAS);
   if (!r.ok) { $('message-depot').textContent = r.erreur; return; }
   sauver(); majSolde();
   if (ecranCourant === 'boutique') dessinerBoutique();
   $('message-depot').textContent = '';
   $('voile-depot').classList.add('cache');
-}
-$('btn-deposer').addEventListener('click', () => {
-  $('champ-depot').value = '';
-  $('message-depot').textContent = '';
-  $('voile-depot').classList.remove('cache');
-});
-$('btn-fermer-depot').addEventListener('click', () => $('voile-depot').classList.add('cache'));
-document.querySelectorAll('.grille-depot button').forEach(b => {
-  b.addEventListener('click', () => deposerMontant(parseInt(b.dataset.depot, 10)));
-});
-$('btn-valider-depot').addEventListener('click', () => {
-  const montant = lireMontant('champ-depot');
-  deposerMontant(Number.isNaN(montant) ? 0 : montant);
 });
 
 // --- Navigation ---
@@ -69,6 +63,7 @@ $('btn-boutique').addEventListener('click', () => afficherEcran('boutique'));
 
 // --- Carrousel d'avions (salon) : uniquement les avions débloqués ---
 const imageAvion = avecSecours(new Image()); // utilisée aussi par le canvas de vol
+let fondCourant = null;                      // décor de l'avion sélectionné (cosmétique)
 avecSecours($('img-avion-salon'));
 
 function avionsDisponibles() {
@@ -80,6 +75,8 @@ function majAvion() {
   $('img-avion-salon').src = avion.img;
   $('nom-avion').textContent = avion.nom;
   imageAvion.src = avion.img;
+  fondCourant = avion.fond || null;
+  $('ecran-jeu').classList.toggle('fond-furtif', fondCourant === 'furtif');
   const dispo = avionsDisponibles();
   const seul = dispo.length < 2;
   $('btn-avion-prec').disabled = seul;
@@ -279,7 +276,7 @@ function demarrerAttente(maintenant) {
 function demarrerVol(maintenant) {
   etatJeu.phase = 'VOL';
   etatJeu.debutVol = maintenant;
-  etatJeu.crashA = Game.tirerCrash(null, Game.avionParId(donnees.avion).minMult);
+  etatJeu.crashA = Game.tirerCrash();
   etatJeu.miseEnCours = etatJeu.miseProchaine;
   etatJeu.miseProchaine = 0;
   majBoutonAction();
@@ -299,6 +296,86 @@ function terminerVol(maintenant) {
   sauver(); majSolde(); majBoutonAction();
 }
 
+// Décor du B-2 : écran radar furtif (balayage, cercles de portée, grille, échos).
+// Purement décoratif — il tourne aussi pendant l'attente, comme un fond d'écran.
+function dessinerFondFurtif(larg, haut, maintenant) {
+  const t = maintenant / 1000;
+  const cx = larg * 0.5, cy = haut * 0.62;
+  const rayon = Math.max(larg, haut) * 0.78;
+
+  const halo = ctxVol.createRadialGradient(cx, cy, 0, cx, cy, rayon);
+  halo.addColorStop(0, 'rgba(46, 204, 113, 0.13)');
+  halo.addColorStop(0.55, 'rgba(28, 120, 90, 0.06)');
+  halo.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctxVol.fillStyle = halo;
+  ctxVol.fillRect(0, 0, larg, haut);
+
+  ctxVol.save();
+  ctxVol.beginPath(); ctxVol.rect(0, 0, larg, haut); ctxVol.clip();
+
+  // grille fine
+  ctxVol.strokeStyle = 'rgba(46, 204, 113, 0.07)';
+  ctxVol.lineWidth = 1;
+  ctxVol.beginPath();
+  for (let x = 0; x <= larg; x += 26) { ctxVol.moveTo(x, 0); ctxVol.lineTo(x, haut); }
+  for (let y = 0; y <= haut; y += 26) { ctxVol.moveTo(0, y); ctxVol.lineTo(larg, y); }
+  ctxVol.stroke();
+
+  // cercles de portée + croix
+  ctxVol.strokeStyle = 'rgba(46, 204, 113, 0.16)';
+  for (let i = 1; i <= 4; i++) {
+    ctxVol.beginPath();
+    ctxVol.arc(cx, cy, (rayon / 4) * i, 0, Math.PI * 2);
+    ctxVol.stroke();
+  }
+  ctxVol.beginPath();
+  ctxVol.moveTo(cx, cy - rayon); ctxVol.lineTo(cx, cy + rayon);
+  ctxVol.moveTo(cx - rayon, cy); ctxVol.lineTo(cx + rayon, cy);
+  ctxVol.stroke();
+
+  // balayage : un tour toutes les 4 s, avec sa traîne
+  const angle = (t / 4) * Math.PI * 2;
+  const balayage = ctxVol.createConicGradient
+    ? ctxVol.createConicGradient(angle - 0.9, cx, cy)
+    : null;
+  if (balayage) {
+    balayage.addColorStop(0, 'rgba(46, 204, 113, 0)');
+    balayage.addColorStop(0.22, 'rgba(46, 204, 113, 0.20)');
+    balayage.addColorStop(0.25, 'rgba(120, 255, 190, 0.34)');
+    balayage.addColorStop(0.26, 'rgba(46, 204, 113, 0)');
+    ctxVol.fillStyle = balayage;
+    ctxVol.beginPath(); ctxVol.arc(cx, cy, rayon, 0, Math.PI * 2); ctxVol.fill();
+  } else {
+    ctxVol.strokeStyle = 'rgba(120, 255, 190, 0.30)';
+    ctxVol.beginPath();
+    ctxVol.moveTo(cx, cy);
+    ctxVol.lineTo(cx + Math.cos(angle) * rayon, cy + Math.sin(angle) * rayon);
+    ctxVol.stroke();
+  }
+
+  // échos radar : ils s'allument au passage du balayage puis s'éteignent
+  const echos = [[0.18, 0.30], [0.72, 0.22], [0.86, 0.55], [0.34, 0.68], [0.58, 0.14]];
+  echos.forEach(([fx, fy], i) => {
+    const ex = fx * larg, ey = fy * haut;
+    const aEcho = Math.atan2(ey - cy, ex - cx);
+    let ecart = (angle - aEcho) % (Math.PI * 2);
+    if (ecart < 0) ecart += Math.PI * 2;
+    const vif = Math.max(0, 1 - ecart / (Math.PI * 1.4));
+    if (vif <= 0.02) return;
+    ctxVol.fillStyle = 'rgba(140, 255, 200, ' + (vif * 0.55).toFixed(3) + ')';
+    ctxVol.beginPath();
+    ctxVol.arc(ex, ey, 2.5 + (i % 2), 0, Math.PI * 2);
+    ctxVol.fill();
+  });
+
+  // lignes de scan qui descendent lentement
+  ctxVol.fillStyle = 'rgba(46, 204, 113, 0.045)';
+  const decalage = (t * 22) % 6;
+  for (let y = -6 + decalage; y < haut; y += 6) ctxVol.fillRect(0, y, larg, 1.5);
+
+  ctxVol.restore();
+}
+
 function dessinerVol(maintenant) {
   const dpr = window.devicePixelRatio || 1;
   const larg = canvasVol.clientWidth, haut = canvasVol.clientHeight;
@@ -306,6 +383,8 @@ function dessinerVol(maintenant) {
   if (canvasVol.width !== larg * dpr) { canvasVol.width = larg * dpr; canvasVol.height = haut * dpr; }
   ctxVol.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctxVol.clearRect(0, 0, larg, haut);
+
+  if (fondCourant === 'furtif') dessinerFondFurtif(larg, haut, maintenant);
 
   if (etatJeu.phase === 'ATTENTE') return;
 

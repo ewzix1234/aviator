@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#16213E">
-  <title>Aviator</title>
+  <title>Back2Back</title>
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="img/icon-192.png">
@@ -19,7 +19,7 @@
 
   <!-- ÉCRAN SALON -->
   <section id="ecran-salon" class="ecran">
-    <h1 class="titre">AVIATOR</h1>
+    <h1 class="titre">BACK<span class="deux">2</span>BACK</h1>
     <div class="carrousel">
       <button id="btn-avion-prec" class="fleche" aria-label="Avion précédent">◀</button>
       <div class="avion-vitrine">
@@ -89,18 +89,11 @@
   <div id="voile-depot" class="voile cache">
     <div class="modale">
       <h3>💶 Ajouter de l'argent</h3>
-      <div class="grille-depot">
-        <button data-depot="10">10 €</button>
-        <button data-depot="20">20 €</button>
-        <button data-depot="50">50 €</button>
-        <button data-depot="100">100 €</button>
-        <button data-depot="200">200 €</button>
-        <button data-depot="500">500 €</button>
-      </div>
-      <div class="ligne-depot">
-        <input id="champ-depot" type="number" inputmode="decimal" min="1" step="any" placeholder="Montant libre">
-        <button id="btn-valider-depot">Ajouter</button>
-      </div>
+      <p class="note-depot" id="note-depot">
+        Recharge de <strong>10 €</strong>, possible uniquement quand ton solde
+        est tombé à <strong>0 €</strong>. Les gros avions se gagnent, ils ne s'achètent pas.
+      </p>
+      <button id="btn-depot-10" class="btn-principal">＋ 10 €</button>
       <div id="message-depot" class="message-erreur"></div>
       <button id="btn-fermer-depot" class="btn-fermer">Fermer</button>
     </div>

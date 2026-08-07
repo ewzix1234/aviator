@@ -4,6 +4,9 @@ const G = require('../game.js');
 
 const mem = (init) => ({ d: init, getItem(k){ return this.d; }, setItem(k, v){ this.d = v; } });
 const neuf = () => G.chargerDonnees(mem(null));
+// Les dépôts sont bridés à 10 € (et seulement à sec) : pour les scénarios qui ont
+// besoin d'un capital de départ, on crédite directement le solde.
+const crediter = (d, montant) => { d.solde = G.arrondi2(d.solde + montant); return d; };
 
 // --- tirerCrash : memes probabilites que l'Aviator original (RTP 97 %) ---
 assert.strictEqual(G.RTP, 0.97, 'RTP 97 % comme Spribe Aviator');
@@ -36,11 +39,6 @@ const instantanes = tirages.filter(c => c === 1).length / N;
 assert.ok(Math.abs(instantanes - instantanesAttendu) < tolerance(instantanesAttendu),
   'crashs instantanes : ' + (instantanes * 100).toFixed(2) + ' %, attendu ' + (instantanesAttendu * 100).toFixed(2) + ' %');
 
-// bonus caché : minMult impose un plancher
-assert.strictEqual(G.tirerCrash(() => 0, 5), 5, 'minMult 5 releve un x1.00 a x5');
-assert.strictEqual(G.tirerCrash(() => 0.9, 5), 9.7, 'minMult n abaisse jamais un gros tirage');
-for (let i = 0; i < 2000; i++) assert.ok(G.tirerCrash(null, 5) >= 5, 'jamais sous x5 avec minMult');
-
 // --- boutique : catalogue ---
 assert.strictEqual(G.AVIONS.length, 10, '10 avions au catalogue');
 assert.strictEqual(G.AVIONS[0].prix, 0, 'le premier avion est offert');
@@ -50,8 +48,12 @@ for (let i = 1; i < G.AVIONS.length; i++) {
 const dernier = G.AVIONS[G.AVIONS.length - 1];
 assert.strictEqual(dernier.prix, 1000, 'le plus cher vaut 1000 €');
 assert.strictEqual(dernier.nom, 'B-2 Spirit', 'le plus cher est le B-2');
-assert.strictEqual(dernier.minMult, 5, 'le plus cher garantit x5');
-assert.ok(G.AVIONS.slice(0, -1).every(a => a.minMult === undefined), 'aucun autre avion n a de bonus');
+// aucun avion ne touche aux probabilites : le B-2 n'apporte qu'un decor
+assert.ok(G.AVIONS.every(a => a.minMult === undefined), 'aucun avion ne modifie les crashs');
+assert.strictEqual(dernier.fond, 'furtif', 'le B-2 a un decor de fond');
+assert.ok(G.AVIONS.slice(0, -1).every(a => a.fond === undefined), 'le decor est exclusif au B-2');
+assert.ok(G.AVIONS.every(a => !/air france|ryanair|easyjet|virgin|united|ups|singapore|antonov|awacs/i.test(a.nom)),
+  'les noms ne gardent que le modele');
 
 // --- chargerDonnees ---
 let d = neuf();
@@ -77,24 +79,40 @@ assert.strictEqual(d.avion, 'avion3', 'avion selectionne conserve');
 d = G.chargerDonnees(mem(JSON.stringify({ version: G.VERSION, solde: 10, avion: 'avion6', avionsPossedes: ['avion1'] })));
 assert.strictEqual(d.avion, 'avion1', 'avion non possede -> avion1');
 
-// --- deposer ---
+// --- deposer : 10 € a la fois, et uniquement a sec ---
+assert.strictEqual(G.DEPOT_PAS, 10, 'recharge de 10 €');
 d = neuf();
-let r = G.deposer(d, 50);
+assert.strictEqual(G.peutDeposer(d), true, 'a 0 € on peut recharger');
+let r = G.deposer(d, 10);
 assert.strictEqual(r.ok, true);
-assert.strictEqual(d.solde, 50);
-assert.strictEqual(d.stats.totalDepose, 50);
+assert.strictEqual(d.solde, 10);
+assert.strictEqual(d.stats.totalDepose, 10);
+assert.strictEqual(G.peutDeposer(d), false, 'plus de recharge tant qu il reste de l argent');
+assert.strictEqual(G.deposer(d, 10).ok, false, 'pas de cumul de depots');
+assert.strictEqual(d.solde, 10, 'solde inchange apres un depot refuse');
+G.placerMise(d, 10);
+G.resoudreManche(d, { mise: 10, crash: 1.2, encaisseA: null }); // ruine
+assert.strictEqual(d.solde, 0);
+assert.strictEqual(G.deposer(d, 10).ok, true, 'recharge de nouveau possible a 0 €');
+assert.strictEqual(d.stats.totalDepose, 20, 'total ajoute cumule');
+// montants hors du pas de 10 € refuses, meme a sec
+d = neuf();
+assert.strictEqual(G.deposer(d, 500).ok, false, 'depot de 500 € refuse');
+assert.strictEqual(G.deposer(d, 20).ok, false, 'depot de 20 € refuse');
 assert.strictEqual(G.deposer(d, 0).ok, false, 'depot 0 refuse');
-assert.strictEqual(G.deposer(d, 0.5).ok, false, 'depot sous 1 € refuse');
-assert.strictEqual(G.deposer(d, 2.005).ok, false, 'depot a plus de 2 decimales refuse');
-assert.strictEqual(G.deposer(d, 2.5).ok, true, 'depot avec centimes accepte');
-assert.strictEqual(d.solde, 52.5, 'centimes credites');
-assert.strictEqual(G.deposer(d, 999999).ok, false, 'depot > max refuse');
+assert.strictEqual(G.deposer(d, 9.99).ok, false, 'depot hors pas refuse');
+assert.strictEqual(d.solde, 0, 'aucun depot refuse n a credite le solde');
+// impossible de s offrir le B-2 (1000 €) en enchainant les recharges
+d = neuf();
+for (let i = 0; i < 200; i++) G.deposer(d, 10);
+assert.strictEqual(d.solde, 10, '200 tentatives de recharge ne donnent que 10 €');
+assert.strictEqual(G.acheterAvion(d, 'avion10').ok, false, 'le B-2 reste inaccessible sans jouer');
 
 // --- acheterAvion ---
 const prix2 = G.AVIONS[1].prix;
 d = neuf();
 assert.strictEqual(G.acheterAvion(d, 'avion2').ok, false, 'achat sans argent refuse');
-G.deposer(d, 200);
+crediter(d, 200);
 r = G.acheterAvion(d, 'avion2');
 assert.strictEqual(r.ok, true, 'achat du 2e avion avec 200 €');
 assert.strictEqual(d.solde, 200 - prix2, 'prix deduit');
@@ -111,7 +129,7 @@ assert.strictEqual(d.avion, 'avion2');
 
 // --- placerMise ---
 d = neuf();
-G.deposer(d, 1000);
+crediter(d, 1000);
 assert.strictEqual(G.placerMise(d, 100).ok, true);
 assert.strictEqual(d.solde, 900, 'mise deduite');
 assert.strictEqual(d.stats.totalMise, 100);
@@ -125,14 +143,14 @@ assert.strictEqual(d.solde, 910.5, 'gain avec centimes credite');
 
 // --- resoudreManche : gain au centime pres ---
 d = neuf();
-G.deposer(d, 1000);
+crediter(d, 1000);
 G.placerMise(d, 10);
 let res = G.resoudreManche(d, { mise: 10, crash: 5, encaisseA: 1.225 });
 assert.strictEqual(res.gain, 12.25, '10 € encaisses a x1.225 rendent 12.25 €');
 assert.strictEqual(d.solde, 1002.25, 'solde au centime');
 
 d = neuf();
-G.deposer(d, 1000);
+crediter(d, 1000);
 G.placerMise(d, 100);
 res = G.resoudreManche(d, { mise: 100, crash: 5.00, encaisseA: 2.5 });
 assert.strictEqual(res.gain, 250, 'gain = mise x mult');
@@ -152,7 +170,7 @@ assert.deepStrictEqual(d.bilanHistorique, [150, 0], 'bilan retombe a 0');
 
 // pas de derive en virgule flottante sur une longue serie de centimes
 const dDerive = neuf();
-G.deposer(dDerive, 100);
+crediter(dDerive, 100);
 for (let i = 0; i < 300; i++) {
   G.placerMise(dDerive, 1);
   G.resoudreManche(dDerive, { mise: 1, crash: 5, encaisseA: 1.1 });
@@ -174,7 +192,7 @@ console.log('OK — tous les tests game.js passent');
 
 // --- reinitialiser ---
 d = neuf();
-G.deposer(d, 500);
+crediter(d, 500);
 G.acheterAvion(d, 'avion2');
 G.placerMise(d, 50);
 G.resoudreManche(d, { mise: 50, crash: 3, encaisseA: 2 });
