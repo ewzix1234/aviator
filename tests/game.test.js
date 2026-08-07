@@ -46,11 +46,11 @@ for (let i = 1; i < G.AVIONS.length; i++) {
   assert.ok(G.AVIONS[i].prix > G.AVIONS[i - 1].prix, 'prix strictement croissants');
 }
 const dernier = G.AVIONS[G.AVIONS.length - 1];
-assert.strictEqual(dernier.prix, 200, 'le plus cher vaut 200 €');
-// bareme divise par 5 : les ecarts entre avions restent identiques
-const BAREME_ORIGINE = [0, 25, 50, 100, 175, 275, 400, 600, 800, 1000];
-G.AVIONS.forEach((a, i) => assert.strictEqual(a.prix * 5, BAREME_ORIGINE[i],
-  a.nom + ' : prix proportionnel a l ancien bareme'));
+assert.strictEqual(dernier.prix, 400, 'le plus cher vaut 400 €');
+// plafond a 400 €, et les premiers paliers restent consequents
+assert.ok(G.AVIONS.every(a => a.prix <= 400), 'aucun avion au-dessus de 400 €');
+assert.strictEqual(G.AVIONS[1].prix, 25, 'le 2e avion reste a 25 €');
+assert.strictEqual(G.AVIONS[2].prix, 50, 'le 3e avion reste a 50 €');
 assert.strictEqual(dernier.nom, 'B-2 Spirit', 'le plus cher est le B-2');
 // aucun avion ne touche aux probabilites : le B-2 n'apporte qu'un decor
 assert.ok(G.AVIONS.every(a => a.minMult === undefined), 'aucun avion ne modifie les crashs');
@@ -106,7 +106,7 @@ assert.strictEqual(G.deposer(d, 20).ok, false, 'depot de 20 € refuse');
 assert.strictEqual(G.deposer(d, 0).ok, false, 'depot 0 refuse');
 assert.strictEqual(G.deposer(d, 9.99).ok, false, 'depot hors pas refuse');
 assert.strictEqual(d.solde, 0, 'aucun depot refuse n a credite le solde');
-// impossible de s offrir le B-2 (200 €) en enchainant les recharges
+// impossible de s offrir le B-2 (400 €) en enchainant les recharges
 d = neuf();
 for (let i = 0; i < 200; i++) G.deposer(d, 10);
 assert.strictEqual(d.solde, 10, '200 tentatives de recharge ne donnent que 10 €');

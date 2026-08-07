@@ -1,16 +1,26 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
+/* Téléphone : pas de flash gris au toucher, pas de zoom au double-tap,
+   et les boutons répondent sans le délai de 300 ms. */
+* { -webkit-tap-highlight-color: transparent; }
+button, input { touch-action: manipulation; font-family: inherit; }
+button { cursor: pointer; }
 :root {
   --fond: #1A1A2E; --panneau: #16213E; --accent: #E94560;
   --texte: #EAEAEA; --texte-faible: #9BA4B4;
   --vert: #2ECC71; --rouge: #E74C3C; --or: #F1C40F;
 }
 html, body { height: 100%; }
+/* 100dvh suit la barre d'URL des navigateurs mobiles, contrairement à 100vh
+   qui laisse un bout de page sous l'écran. */
+@supports (height: 100dvh) { html, body { height: 100dvh; } }
 body {
   background: var(--fond); color: var(--texte);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   display: flex; flex-direction: column;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   -webkit-user-select: none; user-select: none;
+  overscroll-behavior: none;      /* pas de rebond ni de « tirer pour recharger » */
+  -webkit-text-size-adjust: 100%; /* iOS ne regrossit pas le texte en paysage */
 }
 .cache { display: none !important; }
 
@@ -22,17 +32,21 @@ body {
 .solde { font-size: 1.3rem; font-weight: 700; margin-left: auto; }
 .btn-retour {
   background: none; border: 1px solid var(--texte-faible); color: var(--texte);
-  border-radius: 8px; padding: 6px 12px; font-size: 0.9rem;
+  border-radius: 8px; padding: 6px 12px; font-size: 0.9rem; min-height: 40px;
 }
 .btn-deposer {
   background: var(--vert); border: none; color: #08331C; font-weight: 800;
-  border-radius: 8px; padding: 8px 14px; font-size: 0.95rem; margin-left: 12px;
+  border-radius: 8px; padding: 8px 14px; font-size: 0.95rem; margin-left: 12px; min-height: 40px;
 }
 .btn-retour:disabled { opacity: 0.35; }
 /* l'ajout d'argent n'est ouvert qu'à 0 € : le bouton s'éteint le reste du temps */
 .btn-deposer:disabled { background: #2C3E66; color: var(--texte-faible); }
 
-.ecran { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 20px 16px; gap: 18px; overflow-y: auto; }
+.ecran {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 20px 16px; gap: 18px;
+  overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+}
 
 .titre { font-size: 2.6rem; letter-spacing: 4px; color: var(--texte); margin-top: 8vh; }
 .titre .deux { color: var(--accent); }
@@ -67,7 +81,14 @@ body {
 .puce-crash.haut { color: var(--or); }
 
 .zone-vol { position: relative; width: 100%; }
-#canvas-vol { width: 100%; height: 42vh; display: block; background: var(--panneau); border-radius: 14px; }
+#canvas-vol { width: 100%; height: 100%; display: block; background: var(--panneau); border-radius: 14px; }
+
+/* L'écran de jeu ne défile jamais : la bande de crashs et le panneau de mise
+   gardent leur taille, la zone de vol absorbe tout ce qui reste. Le jeu tient
+   donc entier de l'iPhone SE au grand format, sans hauteur en dur. */
+#ecran-jeu { overflow: hidden; justify-content: flex-start; }
+#ecran-jeu .bande-crashs, #ecran-jeu .panneau-mise { flex: 0 0 auto; }
+#ecran-jeu .zone-vol { flex: 1 1 auto; min-height: 150px; }
 /* décor du B-2 : la zone de vol vire à l'écran radar (purement cosmétique) */
 .fond-furtif #canvas-vol {
   background: #0A1410;
@@ -86,17 +107,22 @@ body {
 }
 
 .panneau-mise { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; }
+.panneau-mise .btn-principal { width: 100%; }
 .ligne-mise { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .ligne-mise label { color: var(--texte-faible); font-size: 0.95rem; }
 .ligne-mise input {
   background: var(--panneau); border: 1px solid #2C3E66; color: var(--texte);
   border-radius: 10px; padding: 12px; font-size: 1.1rem; width: 110px; text-align: center;
+  min-width: 0;
 }
-.mises-rapides { display: flex; gap: 6px; }
+#champ-auto { flex: 1; width: auto; }
+.mises-rapides { display: flex; gap: 6px; flex: 1; }
 .mises-rapides button {
   background: var(--panneau); color: var(--texte); border: none;
-  border-radius: 8px; padding: 10px 12px; font-size: 0.9rem;
+  border-radius: 8px; padding: 10px 12px; font-size: 0.95rem;
+  flex: 1; min-height: 44px;
 }
+.mises-rapides button:active { background: var(--accent); color: white; }
 .message-erreur { color: var(--rouge); text-align: center; min-height: 1.2em; font-size: 0.95rem; }
 
 .btn-toggle {
@@ -110,9 +136,11 @@ body {
 .selecteur-duree button {
   background: var(--panneau); color: var(--texte-faible); border: none;
   border-radius: 10px; padding: 10px 18px; font-size: 1rem; font-weight: 600;
+  min-height: 44px; flex: 1;
 }
 .selecteur-duree button.actif { background: var(--accent); color: white; }
 #canvas-stats { width: 100%; max-width: 480px; height: 40vh; background: var(--panneau); border-radius: 14px; }
+@supports (height: 100dvh) { #canvas-stats { height: 38dvh; min-height: 200px; } }
 .resume-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 480px; }
 .carte-stat { background: var(--panneau); border-radius: 12px; padding: 12px; text-align: center; }
 .carte-stat .valeur { font-size: 1.3rem; font-weight: 800; }
@@ -137,7 +165,7 @@ body {
 #btn-depot-10:active { box-shadow: 0 3px 0 #1E8449; }
 .btn-fermer {
   background: none; border: none; color: var(--texte-faible);
-  font-size: 1rem; padding: 8px; text-decoration: underline;
+  font-size: 1rem; padding: 8px; text-decoration: underline; min-height: 44px;
 }
 
 .btn-danger { border-color: #5A2733; color: var(--rouge); margin-top: 4px; }
@@ -178,8 +206,52 @@ body {
 .carte-avion .prix { color: var(--or); font-weight: 800; text-align: center; align-self: center; }
 .carte-avion button {
   width: 100%; border: none; border-radius: 10px; padding: 10px 0;
-  font-size: 0.95rem; font-weight: 800; align-self: end;
+  font-size: 0.95rem; font-weight: 800; align-self: end; min-height: 44px;
   background: var(--accent); color: white;
 }
 .carte-avion button.secondaire { background: #2C3E66; color: var(--texte); }
 .carte-avion button:disabled { background: #3A4157; color: var(--texte-faible); }
+
+/* --- petits écrans : tout l'écran de jeu doit tenir sans défilement --- */
+@media (max-height: 740px) {
+  .ecran { padding: 12px 14px; gap: 10px; }
+  .titre { font-size: 2.2rem; margin-top: 4vh; }
+  .mult { font-size: 2.1rem; }
+  .btn-principal { font-size: 1.2rem; padding: 13px 0; }
+  .btn-secondaire { padding: 10px 0; }
+  .panneau-mise { gap: 8px; }
+  .ligne-mise input { padding: 9px; }
+  .btn-toggle { padding: 9px 0; }
+  .message-erreur { min-height: 0; }
+}
+/* --- paysage : la zone de vol garde la vedette, le reste se resserre --- */
+@media (orientation: landscape) and (max-height: 560px) {
+  .titre { margin-top: 0; font-size: 1.9rem; }
+  .carrousel { max-width: 420px; }
+  .avion-vitrine { width: min(38vw, 240px); }
+  .mult { font-size: 1.7rem; top: 6px; }
+  /* écran couché : vol à gauche, commandes à droite, plutôt que tout empilé */
+  #ecran-jeu {
+    display: grid; align-items: stretch;
+    grid-template-columns: 1fr minmax(230px, 300px);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 10px; padding: 10px 12px;
+  }
+  #ecran-jeu .bande-crashs { grid-column: 1 / -1; }
+  #ecran-jeu .zone-vol { grid-column: 1; min-height: 0; }
+  #ecran-jeu .panneau-mise {
+    grid-column: 2; max-width: none; gap: 7px;
+    overflow-y: auto; overscroll-behavior: contain;
+  }
+  #ecran-jeu .ligne-mise { gap: 6px; }
+  #ecran-jeu .ligne-mise label { font-size: 0.85rem; }
+  #ecran-jeu .ligne-mise input { width: 78px; padding: 7px; font-size: 1rem; }
+  #ecran-jeu .mises-rapides button { min-height: 38px; padding: 6px 8px; font-size: 0.85rem; }
+  #ecran-jeu .btn-toggle { padding: 7px 0; font-size: 0.9rem; }
+  #ecran-jeu .btn-principal { font-size: 1rem; padding: 11px 0; letter-spacing: 1px; }
+}
+/* --- très petits téléphones : la boutique passe en une colonne --- */
+@media (max-width: 340px) {
+  .grille-boutique { grid-template-columns: 1fr; }
+  .resume-stats { grid-template-columns: 1fr; }
+}

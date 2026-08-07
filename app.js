@@ -376,11 +376,21 @@ function dessinerFondFurtif(larg, haut, maintenant) {
   ctxVol.restore();
 }
 
+// Sur téléphone, un ratio de 3 triplerait le nombre de pixels à peindre à chaque
+// image pour un gain visuel nul : on plafonne à 2.
+function ratioEcran() {
+  return Math.min(window.devicePixelRatio || 1, 2);
+}
+
 function dessinerVol(maintenant) {
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = ratioEcran();
   const larg = canvasVol.clientWidth, haut = canvasVol.clientHeight;
   if (larg === 0 || haut === 0) return;
-  if (canvasVol.width !== larg * dpr) { canvasVol.width = larg * dpr; canvasVol.height = haut * dpr; }
+  // la zone de vol s'étire désormais avec l'écran : on surveille les deux dimensions
+  if (canvasVol.width !== Math.round(larg * dpr) || canvasVol.height !== Math.round(haut * dpr)) {
+    canvasVol.width = Math.round(larg * dpr);
+    canvasVol.height = Math.round(haut * dpr);
+  }
   ctxVol.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctxVol.clearRect(0, 0, larg, haut);
 
@@ -453,7 +463,9 @@ function boucleJeu(maintenant) {
     $('affiche-mult').classList.add('crash');
     if (maintenant >= etatJeu.finCrash) demarrerAttente(maintenant);
   }
-  dessinerVol(maintenant);
+  // Les manches continuent de tourner en arrière-plan, mais repeindre le radar
+  // depuis le salon ou la boutique ne servirait qu'à vider la batterie.
+  if (ecranCourant === 'jeu') dessinerVol(maintenant);
   requestAnimationFrame(boucleJeu);
 }
 demarrerAttente(performance.now());
@@ -480,7 +492,7 @@ document.querySelectorAll('#selecteur-vue button').forEach(b => {
 function dessinerStats() {
   const canvas = $('canvas-stats');
   const ctx = canvas.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = ratioEcran();
   const larg = canvas.clientWidth, haut = canvas.clientHeight;
   if (larg === 0 || haut === 0) return;
   canvas.width = larg * dpr; canvas.height = haut * dpr;
@@ -586,6 +598,8 @@ majSolde();
 majAvion();
 afficherEcran('salon');
 
-if ('serviceWorker' in navigator && location.protocol === 'https:') {
+// isSecureContext couvre https ET localhost : le hors-ligne est donc testable en
+// local, alors qu'un test sur file:// ou http distant reste (à raison) sans effet.
+if ('serviceWorker' in navigator && window.isSecureContext) {
   navigator.serviceWorker.register('sw.js');
 }
